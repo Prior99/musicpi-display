@@ -1,0 +1,10 @@
+[package]
+name = "musicpi-display"
+version = "0.1.0"
+authors = ["Frederick Gnodtke"]
+
+[dependencies]
+sdl2 = "0.24.0"
+sdl2_gfx = "0.24.0"
+sdl2_image = "0.24.0"
+spidev = "0.2.1"
