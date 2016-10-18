@@ -1,13 +1,12 @@
 extern crate spidev;
 extern crate sdl2;
 
-mod display;
+pub mod display;
 
 use sdl2::pixels::{ Color, PixelFormatEnum };
 use sdl2::surface::Surface;
 use sdl2::rect::Point;
 use sdl2::render::Renderer;
-use std::mem::transmute;
 use std::slice::from_raw_parts;
 use std::{ thread, time };
 
@@ -15,8 +14,8 @@ use self::display::Display;
 
 fn main() {
     let mut display = Display::new(4, 2).unwrap();
-    display.clear();
-    display.set_intensity(2);
+    display.clear().unwrap();
+    display.set_intensity(2).unwrap();
 
     let surface = Surface::new(32, 16, PixelFormatEnum::RGBA8888).unwrap();
     let mut renderer = Renderer::from_surface(surface).unwrap();
@@ -30,7 +29,7 @@ fn main() {
         let display_data = pixels.into_iter()
             .map(|pixel| *pixel == 255u32)
             .collect::<Vec<_>>();
-        display.display(&display_data);
+        display.display(&display_data).unwrap();
         thread::sleep(time::Duration::from_millis(10));
         x = (x + 1) % 32;
     }
