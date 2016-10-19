@@ -9,3 +9,4 @@ sdl2_image = "0.24"
 spidev = "0.2"
 clap = { features = ["yaml"], version = "2.14.0" }
 chrono = "0.2"
+mpd = "0.0.11"
