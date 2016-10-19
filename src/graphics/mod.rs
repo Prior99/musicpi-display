@@ -21,13 +21,22 @@ pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer)> {
     let font_5x7 = FontRenderer::new(5, 7, init_renderer.load_texture(Path::new("fonts/5x7.png")).unwrap());
     let font_7x12 = FontRenderer::new(7, 12, init_renderer.load_texture(Path::new("fonts/7x12.png")).unwrap());
 
-    let render_time = move |renderer: &mut Renderer| {
+    let render_time = Box::new(move |renderer: &mut Renderer, ms: u64| {
         let actual_time: DateTime<Local> = Local::now();
         let hours = actual_time.format("%H").to_string();
         let minutes = actual_time.format("%M").to_string();
         font_7x12.text(Point::new(0, 0), &hours, renderer);
         font_7x12.text(Point::new(17, 4), &minutes, renderer);
-    };
+    });
+
+    let render_media = Box::new(move |renderer: &mut Renderer, ms: u64| {
+
+    });
+
+    let renderers: [Box<Fn(&mut Renderer, u64)>; 2] = [
+        render_time,
+        render_media
+    ];
 
     Box::new(move |renderer: &mut Renderer| {
 
@@ -37,6 +46,9 @@ pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer)> {
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         renderer.clear();
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
-        render_time(renderer);
+
+        let index = (ms / 10_000) as usize % renderers.len();
+        let ref render = renderers[index];
+        render(renderer, ms);
     })
 }
