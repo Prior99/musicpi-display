@@ -1,0 +1,13 @@
+name: musicpi-display
+version: 0.0.1
+author: Frederick Gnodtke
+about: >
+  Display information about music running on the localhost on a mpd server on a 32x16 LED dotmatrix
+  driven by several chained MAX7219 controllers.
+args:
+  - window:
+      short: w
+      long: window
+      help: >
+        Start a SDL window and render to it instead of using the dotmatrix.
+        Usefull for testing on a different machine.
