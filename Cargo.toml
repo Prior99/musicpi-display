@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["Frederick Gnodtke"]
 
 [dependencies]
-sdl2 = "0.24.0"
-sdl2_image = "0.24.0"
-spidev = "0.2.1"
+sdl2 = "0.24"
+sdl2_image = "0.24"
+spidev = "0.2"
+clap = { features = ["yaml"], version = "2.14.0" }
+chrono = "0.2"
