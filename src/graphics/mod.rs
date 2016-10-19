@@ -29,7 +29,8 @@ pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, Rend
     });
 
     let render_media = Box::new(move |renderer: &mut Renderer, info: RenderInfo| {
-        font_5x7.text(Point::new(0, 0), &format!("{} %", info.mpd.volume), renderer);
+        font_3x5.text(Point::new(0, 0), "Volume:", renderer);
+        font_5x7.text(Point::new(8, 7), &format!("{}%", info.mpd.volume), renderer);
     });
 
     let renderers: [Box<Fn(&mut Renderer, RenderInfo)>; 2] = [
