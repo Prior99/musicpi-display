@@ -19,10 +19,8 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::Renderer;
 use std::slice::from_raw_parts;
 use std::{thread, time};
-use std::sync::mpsc::{sync_channel, channel, SyncSender, Receiver};
-use std::time::Instant;
+use std::sync::mpsc::{sync_channel, channel, Receiver};
 use clap::{App};
-use mpd::Client;
 
 use display::Display;
 use graphics::RenderInfo;

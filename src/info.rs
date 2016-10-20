@@ -1,6 +1,6 @@
 use graphics::RenderInfo;
-use chrono::{DateTime, Local};
-use std::time::Instant;
+use chrono::{DateTime, Local, Duration};
+use std::time::{Instant};
 use mpd::Client;
 use std::sync::mpsc::{SyncSender};
 
@@ -16,12 +16,16 @@ fn get_render_info(mpd: &mut Client, start_time: Instant) -> RenderInfo {
     } else {
         (String::from(""), String::from(""))
     };
+    let (elapsed, duration) = status.time.unwrap_or((Duration::seconds(0), Duration::seconds(0)));
     RenderInfo {
         volume: status.volume,
         ms: ms,
         time: actual_time,
         song: title,
-        artist: artist
+        artist: artist,
+        duration: duration,
+        elapsed: elapsed,
+        state: status.state
     }
 }
 

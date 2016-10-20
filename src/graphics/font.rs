@@ -2,9 +2,9 @@ use sdl2::render::{Texture, Renderer};
 use sdl2::rect::{Point, Rect};
 
 pub struct FontRenderer {
-    width: u32,
-    height: u32,
-    texture: Texture
+    pub width: u32,
+    pub height: u32,
+    pub texture: Texture
 }
 
 impl FontRenderer {
