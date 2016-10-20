@@ -2,7 +2,7 @@ mod font;
 
 use sdl2::render::Renderer;
 use sdl2::pixels::Color;
-use sdl2::rect::Point;
+use sdl2::rect::{Point, Rect};
 use sdl2_image::{self, LoadTexture, INIT_PNG};
 use std::path::Path;
 use self::font::FontRenderer;
@@ -18,35 +18,45 @@ pub struct RenderInfo {
     pub song: String
 }
 
-pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, RenderInfo)> {
+pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, RenderInfo, Vec<f32>)> {
     sdl2_image::init(INIT_PNG);
     let font_3x5 = FontRenderer::new(3, 5, init_renderer.load_texture(Path::new("fonts/3x5.png")).unwrap());
     let font_5x7 = FontRenderer::new(5, 7, init_renderer.load_texture(Path::new("fonts/5x7.png")).unwrap());
     let font_7x12 = FontRenderer::new(7, 12, init_renderer.load_texture(Path::new("fonts/7x12.png")).unwrap());
 
-    let render_time = Box::new(move |renderer: &mut Renderer, info: RenderInfo| {
+    let render_time = Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: &Vec<f32>| {
         let hours = info.time.format("%H").to_string();
         let minutes = info.time.format("%M").to_string();
         font_7x12.text(Point::new(0, 0), &hours, renderer);
         font_7x12.text(Point::new(17, 4), &minutes, renderer);
     });
 
-    let render_media = Box::new(move |renderer: &mut Renderer, info: RenderInfo| {
+    let render_media = Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: &Vec<f32>| {
         font_5x7.text(Point::new(0, 0), info.artist.as_str(), renderer);
         font_5x7.text(Point::new(0, 9), info.song.as_str(), renderer);
     });
 
-    let renderers: [Box<Fn(&mut Renderer, RenderInfo)>; 1] = [
-        //render_time,
-        render_media
+    let render_spectrum = Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: &Vec<f32>| {
+        let rects = spectrum.iter().enumerate().map(|(x, value)| {
+            let height = value * 16.0;
+            Rect::new(x as i32, 15 - height as i32, 1, height as u32)
+        }).collect::<Vec<Rect>>();
+        renderer.draw_rects(&rects);
+        renderer.draw_rect(Rect::new(0, 15, 32, 1));
+    });
+
+    let renderers: [Box<Fn(&mut Renderer, RenderInfo, &Vec<f32>)>; 3] = [
+        render_time,
+        render_media,
+        render_spectrum
     ];
 
-    Box::new(move |renderer: &mut Renderer, info: RenderInfo| {
+    Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: Vec<f32>| {
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         renderer.clear();
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
         let index = (info.ms / 10_000) as usize % renderers.len();
         let ref render = renderers[index];
-        render(renderer, info);
+        render(renderer, info, &spectrum);
     })
 }
