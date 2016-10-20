@@ -26,7 +26,7 @@ use std::sync::mpsc::{sync_channel, SyncSender, Receiver};
 fn update_display(renderer: &Renderer, display: &mut Display) {
     let pixels = unsafe { from_raw_parts((*renderer.surface().unwrap().raw()).pixels as *const u32, 32 * 16) };
     let display_data = pixels.into_iter()
-        .map(|pixel| *pixel == 255u32)
+        .map(|pixel| *pixel & 0xFF == 0xFFu32)
         .collect::<Vec<_>>();
     display.display(&display_data).unwrap();
 }
@@ -57,7 +57,7 @@ fn loop_display(receiver: Receiver<RenderInfo>) {
     let mut renderer = Renderer::from_surface(surface).unwrap();
     let mut display = Display::new(4, 2).unwrap();
     display.clear().unwrap();
-    display.set_intensity(2).unwrap();
+    display.set_intensity(1).unwrap();
     let render = graphics::create_render(&mut renderer);
     let mut render_info = receiver.recv().unwrap();
     loop {
