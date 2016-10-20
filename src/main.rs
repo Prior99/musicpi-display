@@ -45,9 +45,9 @@ fn loop_display(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver
     let mut render_info = info_receiver.recv().unwrap();
     let mut spectrum = spectrum_receiver.recv().unwrap();
     loop {
-        let result = info_receiver.try_recv();
-        if result.is_ok() {
-            render_info = result.unwrap();
+        let info_result = info_receiver.try_recv();
+        if info_result.is_ok() {
+            render_info = info_result.unwrap();
         }
         let spectrum_result = spectrum_receiver.try_recv();
         if spectrum_result.is_ok() {
