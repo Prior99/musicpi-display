@@ -7,6 +7,7 @@ extern crate mpd;
 extern crate clap;
 
 mod graphics;
+mod info;
 pub mod display;
 
 use sdl2::surface::Surface;
@@ -18,10 +19,10 @@ use std::{thread, time};
 use clap::{App};
 use mpd::Client;
 use std::time::Instant;
-use self::display::Display;
-use self::graphics::RenderInfo;
-use chrono::{DateTime, Local};
+use display::Display;
+use graphics::RenderInfo;
 use std::sync::mpsc::{sync_channel, SyncSender, Receiver};
+use info::get_render_info;
 
 fn update_display(renderer: &Renderer, display: &mut Display) {
     let pixels = unsafe { from_raw_parts((*renderer.surface().unwrap().raw()).pixels as *const u32, 32 * 16) };
@@ -29,27 +30,6 @@ fn update_display(renderer: &Renderer, display: &mut Display) {
         .map(|pixel| *pixel & 0xFF == 0xFFu32)
         .collect::<Vec<_>>();
     display.display(&display_data).unwrap();
-}
-
-fn get_render_info(mpd: &mut Client, start_time: Instant) -> RenderInfo {
-    let elapsed = Instant::now().duration_since(start_time);
-    let ms = (1_000_000_000 * elapsed.as_secs() + elapsed.subsec_nanos() as u64)/(1_000_000);
-    let actual_time: DateTime<Local> = Local::now();
-    let status = mpd.status().unwrap();
-    let optional_song = mpd.currentsong().unwrap();
-    let (title, artist) = if optional_song.is_some() {
-        let song = optional_song.unwrap();
-        (song.title.unwrap_or(String::from("")), song.tags.get("Artist").unwrap_or(&String::from("")).clone())
-    } else {
-        (String::from(""), String::from(""))
-    };
-    RenderInfo {
-        volume: status.volume,
-        ms: ms,
-        time: actual_time,
-        song: title,
-        artist: artist
-    }
 }
 
 fn loop_display(receiver: Receiver<RenderInfo>) {
