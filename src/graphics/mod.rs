@@ -9,11 +9,13 @@ use self::font::FontRenderer;
 use mpd::status::Status;
 use chrono::{DateTime, Local};
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct RenderInfo {
     pub volume: i8,
     pub ms: u64,
-    pub time: DateTime<Local>
+    pub time: DateTime<Local>,
+    pub artist: String,
+    pub song: String
 }
 
 pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, RenderInfo)> {
@@ -30,11 +32,12 @@ pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, Rend
     });
 
     let render_media = Box::new(move |renderer: &mut Renderer, info: RenderInfo| {
-        font_5x7.text(Point::new(0, 0), &format!("{} %", info.volume), renderer);
+        font_5x7.text(Point::new(0, 0), info.artist.as_str(), renderer);
+        font_5x7.text(Point::new(0, 9), info.song.as_str(), renderer);
     });
 
-    let renderers: [Box<Fn(&mut Renderer, RenderInfo)>; 2] = [
-        render_time,
+    let renderers: [Box<Fn(&mut Renderer, RenderInfo)>; 1] = [
+        //render_time,
         render_media
     ];
 
