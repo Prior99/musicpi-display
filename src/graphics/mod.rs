@@ -9,8 +9,9 @@ use self::font::FontRenderer;
 use mpd::status::Status;
 use chrono::{DateTime, Local};
 
+#[derive(Clone, Copy)]
 pub struct RenderInfo {
-    pub mpd: Status,
+    pub volume: i8,
     pub ms: u64,
     pub time: DateTime<Local>
 }
@@ -29,7 +30,7 @@ pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, Rend
     });
 
     let render_media = Box::new(move |renderer: &mut Renderer, info: RenderInfo| {
-        font_5x7.text(Point::new(0, 0), &format!("{} %", info.mpd.volume), renderer);
+        font_5x7.text(Point::new(0, 0), &format!("{} %", info.volume), renderer);
     });
 
     let renderers: [Box<Fn(&mut Renderer, RenderInfo)>; 2] = [
