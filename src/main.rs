@@ -19,7 +19,7 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::Renderer;
 use std::slice::from_raw_parts;
 use std::{thread, time};
-use std::sync::mpsc::{sync_channel, channel, Receiver};
+use std::sync::mpsc::{sync_channel, Receiver};
 use clap::{App};
 
 use display::Display;
@@ -49,13 +49,13 @@ fn loop_display(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver
         if result.is_ok() {
             render_info = result.unwrap();
         }
-        let spectrum_result = spectrum_receiver.try_recv();
+        let spectrum_result = spectrum_receiver.recv();
         if spectrum_result.is_ok() {
             spectrum = spectrum_result.unwrap();
         }
         render(&mut renderer, render_info.clone(), spectrum.clone());
         update_display(&renderer, &mut display);
-        thread::sleep(time::Duration::from_millis(10));
+        thread::sleep(time::Duration::from_millis(1000/60));
     }
 }
 
@@ -82,7 +82,7 @@ fn loop_window(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver<
         if info_result.is_ok() {
             render_info = info_result.unwrap();
         }
-        let spectrum_result = spectrum_receiver.try_recv();
+        let spectrum_result = spectrum_receiver.recv();
         if spectrum_result.is_ok() {
             spectrum = spectrum_result.unwrap();
         }
@@ -97,7 +97,7 @@ fn main() {
     let arguments = App::from_yaml(yaml).get_matches();
     let use_display = !arguments.is_present("window");
     let (info_sender, info_receiver) = sync_channel(0);
-    let (spectrum_sender, spectrum_receiver) = channel();
+    let (spectrum_sender, spectrum_receiver) = sync_channel(0);
     let render_thread = thread::spawn(move || {
         if use_display {
             loop_display(info_receiver, spectrum_receiver);

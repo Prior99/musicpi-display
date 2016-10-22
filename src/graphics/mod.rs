@@ -87,8 +87,7 @@ pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, Rend
         renderer.draw_rect(Rect::new(0, 15, 32, 1));
     });
 
-    let renderers: [Box<Fn(&mut Renderer, RenderInfo, &Vec<f32>)>; 3] = [
-        render_time,
+    let renderers: [Box<Fn(&mut Renderer, RenderInfo, &Vec<f32>)>; 2] = [
         render_media,
         render_spectrum
     ];
@@ -98,7 +97,11 @@ pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, Rend
         renderer.clear();
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
         let index = (info.ms / 10_000) as usize % renderers.len();
-        let ref render = renderers[index];
-        render(renderer, info, &spectrum);
+        if info.state == State::Stop {
+            render_time(renderer, info, &spectrum);
+        } else {
+            let ref render = renderers[index];
+            render(renderer, info, &spectrum);
+        }
     })
 }
