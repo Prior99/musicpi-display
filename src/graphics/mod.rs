@@ -32,11 +32,13 @@ fn marquee(font: &FontRenderer, text: &str, start: &Point, ms: u64, renderer: &m
 pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, RenderInfo, Vec<f32>)> {
     sdl2_image::init(INIT_PNG);
 
+    print!("Loading textures...");
     let spinner = init_renderer.load_texture(Path::new("assets/spinner.png")).unwrap();
     let playback_state = init_renderer.load_texture(Path::new("assets/playback-state.png")).unwrap();
     let font_3x5 = FontRenderer::new(3, 5, init_renderer.load_texture(Path::new("assets/3x5.png")).unwrap());
     let font_5x7 = FontRenderer::new(5, 7, init_renderer.load_texture(Path::new("assets/5x7.png")).unwrap());
     let font_7x12 = FontRenderer::new(7, 12, init_renderer.load_texture(Path::new("assets/7x12.png")).unwrap());
+    println!(" Done.");
 
     let render_time = Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: &Vec<f32>| {
         let hours = info.time.format("%H").to_string();
