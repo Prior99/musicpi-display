@@ -45,7 +45,7 @@ fn update_amplitude(amplitude: &mut Vec<[f32; 2]>, data: &Vec<f32>) {
     amplitude.push([min, max]);
 }
 
-pub fn loop_spectrum(sender: SyncSender<SpectrumResult>) {
+pub fn run(sender: SyncSender<SpectrumResult>) {
     let record = Record::new("MusicPi Display", "Record", None, SAMPLE_RATE);
     let mut stereo_data = (0 .. DFT_WINDOW_SIZE).map(|_| [0.0, 0.0]).collect::<Vec<[f32;2]>>();
     let mut plan = Plan::new(Operation::Forward, DFT_WINDOW_SIZE);

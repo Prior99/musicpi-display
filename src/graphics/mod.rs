@@ -5,6 +5,7 @@ use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use sdl2_image::{self, LoadTexture, INIT_PNG};
 use std::path::Path;
+use std::{thread, time};
 use self::font::FontRenderer;
 use chrono::{DateTime, Local, Duration};
 use mpd::status::State;

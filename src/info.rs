@@ -29,7 +29,7 @@ fn get_render_info(mpd: &mut Client, start_time: Instant) -> RenderInfo {
     }
 }
 
-pub fn loop_info(sender: SyncSender<RenderInfo>) {
+pub fn run(sender: SyncSender<RenderInfo>) {
     let mut mpd = Client::connect("127.0.0.1:6600").unwrap();
     let start_time = Instant::now();
     loop {
