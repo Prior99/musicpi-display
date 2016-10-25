@@ -25,7 +25,7 @@ use clap::{App};
 use display::Display;
 use graphics::RenderInfo;
 use info::loop_info;
-use spectrum::loop_spectrum;
+use spectrum::{loop_spectrum, SpectrumResult};
 
 fn update_display(renderer: &Renderer, display: &mut Display) {
     let pixels = unsafe { from_raw_parts((*renderer.surface().unwrap().raw()).pixels as *const u32, 32 * 16) };
@@ -35,7 +35,7 @@ fn update_display(renderer: &Renderer, display: &mut Display) {
     display.display(&display_data).unwrap();
 }
 
-fn loop_display(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver<Vec<f32>>) {
+fn loop_display(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver<SpectrumResult>) {
     let surface = Surface::new(32, 16, PixelFormatEnum::RGBA8888).unwrap();
     let mut renderer = Renderer::from_surface(surface).unwrap();
     let mut display = Display::new(4, 2).unwrap();
@@ -59,7 +59,7 @@ fn loop_display(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver
     }
 }
 
-fn loop_window(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver<Vec<f32>>) {
+fn loop_window(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver<SpectrumResult>) {
     let sdl_context = sdl2::init().unwrap();
     let video = sdl_context.video().unwrap();
     let window = video.window("musicpi-display", 320, 160)
