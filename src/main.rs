@@ -26,7 +26,7 @@ use clap::{App};
 use display::Display;
 use graphics::RenderInfo;
 use info::loop_info;
-use spectrum::loop_spectrum;
+use spectrum::{loop_spectrum, SpectrumResult};
 
 fn update_display(renderer: &Renderer, display: &mut Display) {
     let pixels = unsafe { from_raw_parts((*renderer.surface().unwrap().raw()).pixels as *const u32, 32 * 16) };
@@ -39,9 +39,9 @@ fn update_display(renderer: &Renderer, display: &mut Display) {
 struct BaseRenderer {
     renderer: Renderer<'static>,
     info: RenderInfo,
-    spectrum: Vec<f32>,
+    spectrum: SpectrumResult,
     info_receiver: Receiver<RenderInfo>,
-    spectrum_receiver: Receiver<Vec<f32>>
+    spectrum_receiver: Receiver<SpectrumResult>
 }
 
 trait RenderTarget {
@@ -76,7 +76,7 @@ struct DisplayRenderer {
 }
 
 impl DisplayRenderer {
-    fn new(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver<Vec<f32>>) -> DisplayRenderer {
+    fn new(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver<SpectrumResult>) -> DisplayRenderer {
         let surface = Surface::new(32, 16, PixelFormatEnum::RGBA8888).unwrap();
         let renderer = Renderer::from_surface(surface).unwrap();
         let mut display = Display::new(4, 2).unwrap();
@@ -114,7 +114,7 @@ struct WindowRenderer {
 }
 
 impl WindowRenderer {
-    fn new(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver<Vec<f32>>) -> WindowRenderer {
+    fn new(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver<SpectrumResult>) -> WindowRenderer {
         let sdl_context = sdl2::init().unwrap();
         let video = sdl_context.video().unwrap();
         let window = video.window("musicpi-display", 320, 160)
