@@ -17,7 +17,7 @@ mod target;
 use target::Target;
 use target::display::TargetDisplay;
 use target::window::TargetWindow;
-use std::{thread, time};
+use std::thread;
 use std::sync::mpsc::sync_channel;
 use clap::{App};
 
@@ -28,13 +28,12 @@ fn main() {
     let (info_sender, info_receiver) = sync_channel(0);
     let (spectrum_sender, spectrum_receiver) = sync_channel(0);
     let render_thread = thread::spawn(move || {
-        if use_display {
-            let mut renderer = TargetDisplay::new(info_receiver, spectrum_receiver);
-            renderer.run();
+        let mut target: Box<Target> = if use_display {
+            Box::new(TargetDisplay::new(info_receiver, spectrum_receiver))
         } else {
-            let mut renderer = TargetWindow::new(info_receiver, spectrum_receiver);
-            renderer.run();
-        }
+            Box::new(TargetWindow::new(info_receiver, spectrum_receiver))
+        };
+        target.run();
     });
     let update_thread = thread::spawn(move || {
         info::run(info_sender);

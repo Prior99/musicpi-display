@@ -1,11 +1,12 @@
 pub mod display;
 pub mod window;
 
-use graphics::{create_render,RenderInfo};
+use graphics::{draw, RenderInfo};
 use spectrum::SpectrumResult;
 use sdl2::render::Renderer;
 use std::sync::mpsc::Receiver;
 use std::{thread, time};
+use sdl2_image::{self, INIT_PNG};
 
 pub struct BaseTarget {
     renderer: Renderer<'static>,
@@ -17,7 +18,7 @@ pub struct BaseTarget {
 
 pub trait Target {
     fn run(& mut self) {
-        let render = create_render(&mut self.get_base_renderer().renderer);
+        sdl2_image::init(INIT_PNG);
         loop {
             {
                 let mut base_renderer = self.get_base_renderer();
@@ -29,14 +30,16 @@ pub trait Target {
                 if spectrum_result.is_ok() {
                     base_renderer.spectrum = spectrum_result.unwrap();
                 }
-                render(&mut base_renderer.renderer, base_renderer.info.clone(), base_renderer.spectrum.clone());
+                draw(&mut base_renderer.renderer, base_renderer.info.clone(), base_renderer.spectrum.clone());
             }
+            print!("render ... ");
             self.render();
+            println!("done.");
             thread::sleep(time::Duration::from_millis(1000/60));
         }
     }
 
-    fn get_base_renderer(& mut self) -> & mut BaseTarget;
+    fn get_base_renderer(&mut self) -> &mut BaseTarget;
 
     fn render(&mut self);
 }
