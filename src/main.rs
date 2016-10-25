@@ -12,11 +12,11 @@ mod graphics;
 mod info;
 mod spectrum;
 mod display;
-mod render;
+mod target;
 
-use render::RenderTarget;
-use render::display::RenderTargetDisplay;
-use render::window::RenderTargetWindow;
+use target::Target;
+use target::display::TargetDisplay;
+use target::window::TargetWindow;
 use std::{thread, time};
 use std::sync::mpsc::sync_channel;
 use clap::{App};
@@ -29,10 +29,10 @@ fn main() {
     let (spectrum_sender, spectrum_receiver) = sync_channel(0);
     let render_thread = thread::spawn(move || {
         if use_display {
-            let mut renderer = RenderTargetDisplay::new(info_receiver, spectrum_receiver);
+            let mut renderer = TargetDisplay::new(info_receiver, spectrum_receiver);
             renderer.run();
         } else {
-            let mut renderer = RenderTargetWindow::new(info_receiver, spectrum_receiver);
+            let mut renderer = TargetWindow::new(info_receiver, spectrum_receiver);
             renderer.run();
         }
     });
