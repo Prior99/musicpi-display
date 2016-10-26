@@ -2,5 +2,6 @@ node_modules
 dist
 Cargo.lock
 target/
+!src/target/
 *.log
 target-install

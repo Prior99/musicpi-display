@@ -1,6 +1,6 @@
 extern crate dft;
 
-use std::sync::mpsc::{SyncSender};
+use std::sync::mpsc::{Sender};
 use pulse_simple::Record;
 use dft::{Operation, Plan};
 
@@ -45,7 +45,7 @@ fn update_amplitude(amplitude: &mut Vec<[f32; 2]>, data: &Vec<f32>) {
     amplitude.push([min, max]);
 }
 
-pub fn loop_spectrum(sender: SyncSender<SpectrumResult>) {
+pub fn run(sender: Sender<SpectrumResult>) {
     let record = Record::new("MusicPi Display", "Record", None, SAMPLE_RATE);
     let mut stereo_data = (0 .. DFT_WINDOW_SIZE).map(|_| [0.0, 0.0]).collect::<Vec<[f32;2]>>();
     let mut plan = Plan::new(Operation::Forward, DFT_WINDOW_SIZE);
@@ -55,7 +55,7 @@ pub fn loop_spectrum(sender: SyncSender<SpectrumResult>) {
         let mono_data = stereo_data.iter().map(|samples| (samples[0] + samples[1]) / 2.0).collect::<Vec<f32>>();
         let spectrum = get_spectrum(&mut plan, &mono_data);
         update_amplitude(&mut amplitude, &mono_data);
-        sender.try_send(SpectrumResult {
+        sender.send(SpectrumResult {
             spectrum: spectrum,
             amplitude: amplitude.clone()
         });
