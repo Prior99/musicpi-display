@@ -18,7 +18,7 @@ use target::Target;
 use target::display::TargetDisplay;
 use target::window::TargetWindow;
 use std::thread;
-use std::sync::mpsc::sync_channel;
+use std::sync::mpsc::{sync_channel, channel};
 use clap::{App};
 
 fn main() {
@@ -26,7 +26,7 @@ fn main() {
     let arguments = App::from_yaml(yaml).get_matches();
     let use_display = !arguments.is_present("window");
     let (info_sender, info_receiver) = sync_channel(0);
-    let (spectrum_sender, spectrum_receiver) = sync_channel(0);
+    let (spectrum_sender, spectrum_receiver) = channel();
     let render_thread = thread::spawn(move || {
         let mut target: Box<Target> = if use_display {
             Box::new(TargetDisplay::new(info_receiver, spectrum_receiver))

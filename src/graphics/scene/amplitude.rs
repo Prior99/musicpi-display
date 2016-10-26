@@ -23,7 +23,7 @@ impl Scene for SceneAmplitude {
         let points = spectrum.amplitude.iter().enumerate().flat_map(|(x, value)| {
             let height_min = value[0] * -8.0;
             let height_max = value[1] * 8.0;
-            vec![Point::new(x as i32, height_min as i32 + 8), Point::new(x as i32, 8 - height_max as i32)]
+            vec![Point::new(x as i32, height_min as i32 + 7), Point::new(x as i32, 8 - height_max as i32)]
         }).collect::<Vec<Point>>();
         renderer.draw_points(&points);
     }

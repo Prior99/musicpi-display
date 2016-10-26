@@ -21,7 +21,7 @@ impl Scene for SceneSpectrum {
         renderer.clear();
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
         let rects = spectrum.spectrum.iter().enumerate().map(|(x, value)| {
-            let height = value * 15.0;
+            let height = value.min(1.0) * 15.0;
             Rect::new(x as i32, 15 - height as i32, 1, height as u32)
         }).collect::<Vec<Rect>>();
         renderer.draw_rects(&rects);

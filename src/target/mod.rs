@@ -46,15 +46,13 @@ pub trait Target {
                 if result.is_ok() {
                     base_target.info = result.unwrap();
                 }
-                let spectrum_result = base_target.spectrum_receiver.recv();
+                let spectrum_result = base_target.spectrum_receiver.try_recv();
                 if spectrum_result.is_ok() {
                     base_target.spectrum = spectrum_result.unwrap();
                 }
                 graphics.draw(&mut base_target.renderer, base_target.info.clone(), base_target.spectrum.clone());
             }
-            print!("render ... ");
             self.render();
-            println!("done.");
             thread::sleep(time::Duration::from_millis(1000/60));
         }
     }

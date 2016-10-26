@@ -9,6 +9,8 @@ use mpd::status::State;
 use spectrum::SpectrumResult;
 use self::scene::*;
 
+const SCENE_TIME: u64 = 10_000;
+
 #[derive(Clone)]
 pub struct RenderInfo {
     pub volume: i8,
@@ -81,10 +83,11 @@ impl Graphics {
         let updated_scene_texture = renderer.render_target().unwrap().reset().unwrap().unwrap();
         renderer.copy(&updated_scene_texture, Some(Rect::new(0, 0, 32, 16)), Some(Rect::new(0, 0, 32, 16)));
         let new_container = SceneContainer::new(container.scene, updated_scene_texture, container.condition);
-        if info.ms % 5000 == 0 {
+        if info.ms % SCENE_TIME < self.time % SCENE_TIME {
             self.scenes.insert(0, new_container);
         } else {
             self.scenes.push(new_container);
         }
+        self.time = info.ms;
     }
 }
