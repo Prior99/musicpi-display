@@ -8,6 +8,7 @@ use std::path::Path;
 use self::font::FontRenderer;
 use chrono::{DateTime, Local, Duration};
 use mpd::status::State;
+use spectrum::SpectrumResult;
 
 #[derive(Clone)]
 pub struct RenderInfo {
@@ -29,16 +30,18 @@ fn marquee(font: &FontRenderer, text: &str, start: &Point, ms: u64, renderer: &m
     font.text(point, text, renderer);
 }
 
-pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, RenderInfo, Vec<f32>)> {
+pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, RenderInfo, SpectrumResult)> {
     sdl2_image::init(INIT_PNG);
 
+    print!("Loading textures...");
     let spinner = init_renderer.load_texture(Path::new("assets/spinner.png")).unwrap();
     let playback_state = init_renderer.load_texture(Path::new("assets/playback-state.png")).unwrap();
     let font_3x5 = FontRenderer::new(3, 5, init_renderer.load_texture(Path::new("assets/3x5.png")).unwrap());
     let font_5x7 = FontRenderer::new(5, 7, init_renderer.load_texture(Path::new("assets/5x7.png")).unwrap());
     let font_7x12 = FontRenderer::new(7, 12, init_renderer.load_texture(Path::new("assets/7x12.png")).unwrap());
+    println!(" Done.");
 
-    let render_time = Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: &Vec<f32>| {
+    let render_time = Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: &SpectrumResult| {
         let hours = info.time.format("%H").to_string();
         let minutes = info.time.format("%M").to_string();
         font_7x12.text(Point::new(0, 0), &hours, renderer);
@@ -49,7 +52,7 @@ pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, Rend
     const STATE_SIZE: u32 = 5;
     const SPINNER_SIZE: u32 = 9;
 
-    let render_media = Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: &Vec<f32>| {
+    let render_media = Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: &SpectrumResult| {
         marquee(&font_3x5, format!("{} - {}", info.artist, info.song).as_str(), &Point::new(0, 11), info.ms, renderer);
         let elapsed = info.elapsed.num_milliseconds() / 100;
         let duration = info.duration.num_milliseconds() / 100;
@@ -78,27 +81,40 @@ pub fn create_render(init_renderer: &mut Renderer) -> Box<Fn(&mut Renderer, Rend
         );
     });
 
-    let render_spectrum = Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: &Vec<f32>| {
-        let rects = spectrum.iter().enumerate().map(|(x, value)| {
-            let height = value * 16.0;
+    let render_spectrum = Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: &SpectrumResult| {
+        let rects = spectrum.spectrum.iter().enumerate().map(|(x, value)| {
+            let height = value * 15.0;
             Rect::new(x as i32, 15 - height as i32, 1, height as u32)
         }).collect::<Vec<Rect>>();
         renderer.draw_rects(&rects);
         renderer.draw_rect(Rect::new(0, 15, 32, 1));
     });
 
-    let renderers: [Box<Fn(&mut Renderer, RenderInfo, &Vec<f32>)>; 3] = [
-        render_time,
+    let render_amplitude = Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: &SpectrumResult| {
+        let points = spectrum.amplitude.iter().enumerate().flat_map(|(x, value)| {
+            let height_min = value[0] * -8.0;
+            let height_max = value[1] * 8.0;
+            vec![Point::new(x as i32, height_min as i32 + 8), Point::new(x as i32, 8 - height_max as i32)]
+        }).collect::<Vec<Point>>();
+        renderer.draw_points(&points);
+    });
+
+    let renderers: [Box<Fn(&mut Renderer, RenderInfo, &SpectrumResult)>; 3] = [
         render_media,
-        render_spectrum
+        render_spectrum,
+        render_amplitude
     ];
 
-    Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: Vec<f32>| {
+    Box::new(move |renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult| {
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         renderer.clear();
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
-        let index = (info.ms / 10_000) as usize % renderers.len();
-        let ref render = renderers[index];
-        render(renderer, info, &spectrum);
+        let index = (info.ms / 30_000) as usize % renderers.len();
+        if info.state == State::Stop {
+            render_time(renderer, info, &spectrum);
+        } else {
+            let ref render = renderers[index];
+            render(renderer, info, &spectrum);
+        }
     })
 }
