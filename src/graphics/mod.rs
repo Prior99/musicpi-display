@@ -21,30 +21,70 @@ pub struct RenderInfo {
     pub state: State
 }
 
+pub struct SceneContainer {
+    scene: Box<Scene>,
+    texture: Texture,
+    condition: Box<Fn(&RenderInfo) -> bool>
+}
+
+impl SceneContainer {
+    fn new(scene: Box<Scene>, texture: Texture, condition: Box<Fn(&RenderInfo) -> bool>) -> SceneContainer {
+        SceneContainer {
+            texture: texture,
+            scene: scene,
+            condition: condition
+        }
+    }
+}
+
+pub struct Graphics {
+    time: u64,
+    scenes: Vec<SceneContainer>
+}
+
 fn prepare_texture(renderer: &mut Renderer) -> Texture {
     renderer.create_texture_target(PixelFormatEnum::RGBA8888, 32, 16).unwrap()
 }
 
-pub fn draw(renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) {
-    renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
-    renderer.clear();
-    let mut scenes: Vec<(Box<Scene>, Texture)> = Vec::new();
-    scenes.push((Box::new(SceneTime::new(renderer)), prepare_texture(renderer)));
-    if info.state == State::Pause || info.state == State::Play {
-        scenes.push((Box::new(SceneMedia::new(renderer)), prepare_texture(renderer)));
+impl Graphics {
+    pub fn new(renderer: &mut Renderer, time: u64) -> Graphics {
+        let scenes = vec![
+            SceneContainer::new(Box::new(SceneTime::new(renderer)),
+                prepare_texture(renderer),
+                Box::new(|_| true)),
+            SceneContainer::new(Box::new(SceneMedia::new(renderer)),
+                prepare_texture(renderer),
+                Box::new(|info| info.state != State::Stop)),
+            SceneContainer::new(Box::new(SceneSpectrum::new(renderer)),
+                prepare_texture(renderer),
+                Box::new(|info| info.state == State::Play)),
+            SceneContainer::new(Box::new(SceneAmplitude::new(renderer)),
+                prepare_texture(renderer),
+                Box::new(|info| info.state == State::Play)),
+        ];
+        Graphics {
+            time: time,
+            scenes: scenes
+        }
     }
-    if info.state == State::Play {
-        scenes.push((Box::new(SceneSpectrum::new(renderer)), prepare_texture(renderer)));
-        scenes.push((Box::new(SceneAmplitude::new(renderer)), prepare_texture(renderer)));
-    }
-    let (mut scene, texture) = scenes.pop().unwrap();
-    renderer.render_target().unwrap().set(texture);
-    scene.draw(renderer, &info, &spectrum);
-    let updated_scene_texture = renderer.render_target().unwrap().reset().unwrap().unwrap();
-    renderer.copy(&updated_scene_texture, Some(Rect::new(0, 0, 32, 16)), Some(Rect::new(0, 0, 32, 16)));
-    if info.ms % 5000 == 0 {
-        scenes.insert(0, (scene, updated_scene_texture));
-    } else {
-        scenes.push((scene, updated_scene_texture));
+
+    pub fn draw(&mut self, renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) {
+        renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
+        renderer.clear();
+        let mut container = self.scenes.pop().unwrap();
+        while !(container.condition)(&info) {
+            self.scenes.insert(0, container);
+            container = self.scenes.pop().unwrap();
+        }
+        renderer.render_target().unwrap().set(container.texture);
+        container.scene.draw(renderer, &info, &spectrum);
+        let updated_scene_texture = renderer.render_target().unwrap().reset().unwrap().unwrap();
+        renderer.copy(&updated_scene_texture, Some(Rect::new(0, 0, 32, 16)), Some(Rect::new(0, 0, 32, 16)));
+        let new_container = SceneContainer::new(container.scene, updated_scene_texture, container.condition);
+        if info.ms % 5000 == 0 {
+            self.scenes.insert(0, new_container);
+        } else {
+            self.scenes.push(new_container);
+        }
     }
 }

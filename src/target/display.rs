@@ -18,7 +18,7 @@ fn update_display(renderer: &Renderer, display: &mut Display) {
 
 pub struct TargetDisplay {
     display: Display,
-    base_renderer: BaseTarget
+    base_target: BaseTarget
 }
 
 impl TargetDisplay {
@@ -32,7 +32,7 @@ impl TargetDisplay {
         let spectrum = spectrum_receiver.recv().unwrap();
         TargetDisplay {
             display: display,
-            base_renderer: BaseTarget {
+            base_target: BaseTarget {
                 renderer: renderer,
                 info: info,
                 spectrum: spectrum,
@@ -45,12 +45,12 @@ impl TargetDisplay {
 }
 
 impl Target for TargetDisplay {
-    fn get_base_renderer(&mut self) -> &mut BaseTarget {
-        &mut self.base_renderer
+    fn base_target(&mut self) -> &mut BaseTarget {
+        &mut self.base_target
     }
 
     fn render(&mut self) {
-        update_display(&self.base_renderer.renderer, &mut self.display);
+        update_display(&self.base_target.renderer, &mut self.display);
     }
 }
 

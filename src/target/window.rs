@@ -8,7 +8,7 @@ use std::sync::mpsc::Receiver;
 use target::{BaseTarget, Target};
 
 pub struct TargetWindow {
-    base_renderer: BaseTarget,
+    base_target: BaseTarget,
     events: EventPump
 }
 
@@ -25,7 +25,7 @@ impl TargetWindow {
         let spectrum = spectrum_receiver.recv().unwrap();
         TargetWindow {
             events: sdl_context.event_pump().unwrap(),
-            base_renderer: BaseTarget {
+            base_target: BaseTarget {
                 renderer: renderer,
                 info: info,
                 spectrum: spectrum,
@@ -38,12 +38,12 @@ impl TargetWindow {
 }
 
 impl Target for TargetWindow {
-    fn get_base_renderer(&mut self) -> &mut BaseTarget {
-        &mut self.base_renderer
+    fn base_target(&mut self) -> &mut BaseTarget {
+        &mut self.base_target
     }
 
     fn render(&mut self) {
-        self.base_renderer.renderer.present();
+        self.base_target.renderer.present();
     }
 }
 
