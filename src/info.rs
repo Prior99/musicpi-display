@@ -2,7 +2,9 @@ use graphics::RenderInfo;
 use chrono::{DateTime, Local, Duration};
 use std::time::{Instant};
 use mpd::Client;
-use std::sync::mpsc::{SyncSender};
+use std::sync::mpsc::{SyncSender, SendError};
+use bus::{BusReader};
+use ControlStatus;
 
 fn get_render_info(mpd: &mut Client, start_time: Instant) -> RenderInfo {
     let elapsed = Instant::now().duration_since(start_time);
@@ -29,10 +31,21 @@ fn get_render_info(mpd: &mut Client, start_time: Instant) -> RenderInfo {
     }
 }
 
-pub fn run(sender: SyncSender<RenderInfo>) {
+pub fn run(mut control_rx: BusReader<ControlStatus>, sender: SyncSender<RenderInfo>) -> Result<(), SendError<RenderInfo>> {
     let mut mpd = Client::connect("127.0.0.1:6600").unwrap();
     let start_time = Instant::now();
     loop {
-        sender.send(get_render_info(&mut mpd, start_time));
+        let result = sender.send(get_render_info(&mut mpd, start_time));
+        if !result.is_ok() {
+            return result;
+        }
+        match control_rx.try_recv() {
+            Ok(status) => {
+                if status == ControlStatus::Abort {
+                    return Ok(())
+                }
+            }
+            _ => {}
+        }
     }
 }

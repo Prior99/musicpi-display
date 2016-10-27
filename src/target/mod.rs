@@ -7,6 +7,8 @@ use sdl2::render::Renderer;
 use std::sync::mpsc::Receiver;
 use std::{thread, time};
 use sdl2_image::{self, INIT_PNG};
+use bus::BusReader;
+use ControlStatus;
 
 pub struct BaseTarget {
     renderer: Renderer<'static>,
@@ -20,26 +22,18 @@ impl BaseTarget {
     pub fn renderer(&mut self) -> &mut Renderer<'static> {
         &mut self.renderer
     }
-
-    pub fn info(&self) -> &RenderInfo {
-        &self.info
-    } 
-
-    pub fn spectrum(&self) -> &SpectrumResult {
-        &self.spectrum
-    } 
 }
 
 pub trait Target {
-    fn run(& mut self) {
-        sdl2_image::init(INIT_PNG);
+    fn run(& mut self, mut control_rx: BusReader<ControlStatus>) -> Result<(), String> {
+        try!(sdl2_image::init(INIT_PNG));
         let mut graphics = {
             let base_target = self.base_target();
-            let time = base_target.info().ms;
+            let time = base_target.info.ms;
             let renderer = base_target.renderer();
             Graphics::new(renderer, time)
         };
-        loop {
+        'a: loop {
             {
                 let mut base_target = self.base_target();
                 let result = base_target.info_receiver.try_recv();
@@ -50,15 +44,26 @@ pub trait Target {
                 if spectrum_result.is_ok() {
                     base_target.spectrum = spectrum_result.unwrap();
                 }
-                graphics.draw(&mut base_target.renderer, base_target.info.clone(), base_target.spectrum.clone());
+                try!(graphics.draw(&mut base_target.renderer, base_target.info.clone(), base_target.spectrum.clone()));
             }
-            self.render();
+            if !self.render() {
+                break 'a;
+            }
+            match control_rx.try_recv() {
+                Ok(status) => {
+                    if status == ControlStatus::Abort {
+                        break 'a;
+                    }
+                }
+                _ => {}
+            }
             thread::sleep(time::Duration::from_millis(1000/60));
         }
+        Ok(())
     }
 
     fn base_target(&mut self) -> &mut BaseTarget;
 
-    fn render(&mut self);
+    fn render(&mut self) -> bool;
 }
 

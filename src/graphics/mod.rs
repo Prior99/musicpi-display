@@ -1,5 +1,5 @@
-mod font;
-mod scene;
+pub mod font;
+pub mod scene;
 
 use sdl2::render::{Renderer, Texture};
 use sdl2::rect::Rect;
@@ -62,7 +62,7 @@ impl Graphics {
                 Box::new(|info| info.state == State::Play)),
             SceneContainer::new(Box::new(SceneAmplitude::new(renderer)),
                 prepare_texture(renderer),
-                Box::new(|info| info.state == State::Play)),
+                Box::new(|info| info.state == State::Play))
         ];
         Graphics {
             time: time,
@@ -70,7 +70,7 @@ impl Graphics {
         }
     }
 
-    pub fn draw(&mut self, renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) {
+    pub fn draw(&mut self, renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) -> Result<(), String> {
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         renderer.clear();
         let mut container = self.scenes.pop().unwrap();
@@ -78,10 +78,13 @@ impl Graphics {
             self.scenes.insert(0, container);
             container = self.scenes.pop().unwrap();
         }
-        renderer.render_target().unwrap().set(container.texture);
-        container.scene.draw(renderer, &info, &spectrum);
+        try!(renderer.render_target().unwrap().set(container.texture));
+        renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
+        renderer.clear();
+        renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
+        try!(container.scene.draw(renderer, &info, &spectrum));
         let updated_scene_texture = renderer.render_target().unwrap().reset().unwrap().unwrap();
-        renderer.copy(&updated_scene_texture, Some(Rect::new(0, 0, 32, 16)), Some(Rect::new(0, 0, 32, 16)));
+        try!(renderer.copy(&updated_scene_texture, Some(Rect::new(0, 0, 32, 16)), Some(Rect::new(0, 0, 32, 16))));
         let new_container = SceneContainer::new(container.scene, updated_scene_texture, container.condition);
         if info.ms % SCENE_TIME < self.time % SCENE_TIME {
             self.scenes.insert(0, new_container);
@@ -89,5 +92,6 @@ impl Graphics {
             self.scenes.push(new_container);
         }
         self.time = info.ms;
+        Ok(())
     }
 }

@@ -1,11 +1,8 @@
 use std::path::Path;
 use mpd::status::State;
-use sdl2::surface::{Surface, SurfaceRef};
 use sdl2::render::{Renderer, Texture};
-use sdl2::pixels::PixelFormatEnum;
 use sdl2_image::LoadTexture;
 use sdl2::rect::{Point, Rect};
-use sdl2::pixels::Color;
 use graphics::RenderInfo;
 use spectrum::SpectrumResult;
 use graphics::scene::Scene;
@@ -35,11 +32,9 @@ impl SceneMedia {
 }
 
 impl Scene for SceneMedia {
-    fn draw(&mut self, renderer: &mut Renderer, info: &RenderInfo, _: &SpectrumResult) {
-        renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
-        renderer.clear();
-        renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
-        self.font_3x5.marquee(format!("{} - {}", info.artist, info.song).as_str(), &Point::new(0, 11), info.ms, renderer);
+    fn draw(&mut self, renderer: &mut Renderer, info: &RenderInfo, _: &SpectrumResult) -> Result<(), String> {
+        let media_text = format!("{} - {}", info.artist, info.song);
+        try!(self.font_3x5.marquee(media_text.as_str(), &Point::new(0, 11), info.ms, renderer));
         let elapsed = info.elapsed.num_milliseconds() / 100;
         let duration = info.duration.num_milliseconds() / 100;
         let progress = elapsed as f32 / duration as f32;
@@ -54,16 +49,16 @@ impl Scene for SceneMedia {
             let frame = (start + i) % SPINNER_FRAMES;
             let src_pos = Point::new(frame * SPINNER_SIZE as i32, 0 as i32);
             let dest_pos = Point::new(11, 0);
-            renderer.copy(
+            try!(renderer.copy(
                 &self.spinner,
                 Some(Rect::new(src_pos.x(), src_pos.y(), SPINNER_SIZE, SPINNER_SIZE)),
                 Some(Rect::new(dest_pos.x(), dest_pos.y(), SPINNER_SIZE, SPINNER_SIZE))
-            );
+            ));
         }
         renderer.copy(
             &self.playback_state,
             Some(Rect::new(state_frame * STATE_SIZE as i32, 0, STATE_SIZE, STATE_SIZE)),
             Some(Rect::new(13, 2, STATE_SIZE, STATE_SIZE))
-        );
+        )
     }
 }

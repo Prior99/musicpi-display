@@ -22,7 +22,8 @@ pub struct TargetDisplay {
 }
 
 impl TargetDisplay {
-    pub fn new(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver<SpectrumResult>) -> TargetDisplay {
+    pub fn new(info_receiver: Receiver<RenderInfo>,
+            spectrum_receiver: Receiver<SpectrumResult>) -> Result<TargetDisplay, String> {
         let surface = Surface::new(32, 16, PixelFormatEnum::RGBA8888).unwrap();
         let renderer = Renderer::from_surface(surface).unwrap();
         let mut display = Display::new(4, 2).unwrap();
@@ -30,7 +31,7 @@ impl TargetDisplay {
         display.set_intensity(1).unwrap();
         let info = info_receiver.recv().unwrap();
         let spectrum = spectrum_receiver.recv().unwrap();
-        TargetDisplay {
+        Ok(TargetDisplay {
             display: display,
             base_target: BaseTarget {
                 renderer: renderer,
@@ -39,7 +40,7 @@ impl TargetDisplay {
                 info_receiver: info_receiver,
                 spectrum_receiver: spectrum_receiver
             }
-        }
+        })
     }
 
 }
@@ -49,8 +50,9 @@ impl Target for TargetDisplay {
         &mut self.base_target
     }
 
-    fn render(&mut self) {
+    fn render(&mut self) -> bool {
         update_display(&self.base_target.renderer, &mut self.display);
+        true
     }
 }
 

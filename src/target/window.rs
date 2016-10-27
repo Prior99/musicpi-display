@@ -1,6 +1,5 @@
 use sdl2;
 use sdl2::event::Event;
-use sdl2::render::Renderer;
 use sdl2::EventPump;
 use graphics::RenderInfo;
 use spectrum::SpectrumResult;
@@ -13,17 +12,21 @@ pub struct TargetWindow {
 }
 
 impl TargetWindow {
-    pub fn new(info_receiver: Receiver<RenderInfo>, spectrum_receiver: Receiver<SpectrumResult>) -> TargetWindow {
+    pub fn new(info_receiver: Receiver<RenderInfo>,
+            spectrum_receiver: Receiver<SpectrumResult>) -> Result<TargetWindow, String> {
         let sdl_context = sdl2::init().unwrap();
         let video = sdl_context.video().unwrap();
         let window = video.window("musicpi-display", 320, 160)
             .build()
             .unwrap();
         let mut renderer = window.renderer().build().unwrap();
-        renderer.set_scale(10.0, 10.0);
+        let result = renderer.set_scale(10.0, 10.0);
+        if !result.is_ok() {
+            return Err(result.err().unwrap());
+        }
         let info = info_receiver.recv().unwrap();
         let spectrum = spectrum_receiver.recv().unwrap();
-        TargetWindow {
+        Ok(TargetWindow {
             events: sdl_context.event_pump().unwrap(),
             base_target: BaseTarget {
                 renderer: renderer,
@@ -32,7 +35,7 @@ impl TargetWindow {
                 info_receiver: info_receiver,
                 spectrum_receiver: spectrum_receiver
             }
-        }
+        })
     }
 
 }
@@ -42,8 +45,15 @@ impl Target for TargetWindow {
         &mut self.base_target
     }
 
-    fn render(&mut self) {
+    fn render(&mut self) -> bool {
+        for event in self.events.poll_iter() {
+            match event {
+                Event::Quit {..} => return false,
+                _ => {}
+            }
+        }
         self.base_target.renderer.present();
+        true
     }
 }
 

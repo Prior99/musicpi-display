@@ -1,10 +1,7 @@
 use std::path::Path;
-use sdl2::surface::{Surface, SurfaceRef};
-use sdl2::render::{Renderer, Texture};
-use sdl2::pixels::PixelFormatEnum;
+use sdl2::render::Renderer;
 use sdl2_image::LoadTexture;
 use sdl2::rect::Point;
-use sdl2::pixels::Color;
 use graphics::RenderInfo;
 use spectrum::SpectrumResult;
 use graphics::scene::Scene;
@@ -24,14 +21,11 @@ impl SceneTime {
 }
 
 impl Scene for SceneTime {
-    fn draw(&mut self, renderer: &mut Renderer, info: &RenderInfo, _: &SpectrumResult) {
-        renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
-        renderer.clear();
-        renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
+    fn draw(&mut self, renderer: &mut Renderer, info: &RenderInfo, _: &SpectrumResult) -> Result<(), String> {
         let hours = info.time.format("%H").to_string();
         let minutes = info.time.format("%M").to_string();
-        self.font_7x12.text(Point::new(0, 0), &hours, renderer);
-        self.font_7x12.text(Point::new(17, 4), &minutes, renderer);
+        try!(self.font_7x12.text(Point::new(0, 0), &hours, renderer));
+        self.font_7x12.text(Point::new(17, 4), &minutes, renderer)
     }
 }
 
