@@ -5,6 +5,7 @@ use pulse_simple::Record;
 use dft::{Operation, Plan};
 use bus::{BusReader};
 use ControlStatus;
+use std::thread;
 
 const SAMPLE_RATE: u32 = 48000;
 const DFT_WINDOW_SIZE: usize = 1024;
@@ -72,5 +73,6 @@ pub fn run(mut control_rx: BusReader<ControlStatus>, sender: Sender<SpectrumResu
             }
             _ => {}
         }
+        thread::yield_now();
     }
 }

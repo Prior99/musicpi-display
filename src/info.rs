@@ -5,6 +5,7 @@ use mpd::Client;
 use std::sync::mpsc::{SyncSender, SendError};
 use bus::{BusReader};
 use ControlStatus;
+use std::thread;
 
 fn get_render_info(mpd: &mut Client, start_time: Instant) -> RenderInfo {
     let elapsed = Instant::now().duration_since(start_time);
@@ -47,5 +48,6 @@ pub fn run(mut control_rx: BusReader<ControlStatus>, sender: SyncSender<RenderIn
             }
             _ => {}
         }
+        thread::yield_now();
     }
 }

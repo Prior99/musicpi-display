@@ -5,10 +5,13 @@ use graphics::{Graphics, RenderInfo};
 use spectrum::SpectrumResult;
 use sdl2::render::Renderer;
 use std::sync::mpsc::Receiver;
-use std::{thread, time};
+use std::thread;
 use sdl2_image::{self, INIT_PNG};
 use bus::BusReader;
 use ControlStatus;
+use std::time::{SystemTime, Duration};
+
+const MILLISECONDS_PER_FRAME: u64 = 1000/60;
 
 pub struct BaseTarget {
     renderer: Renderer<'static>,
@@ -34,6 +37,7 @@ pub trait Target {
             Graphics::new(renderer, time)
         };
         'a: loop {
+            let begin = SystemTime::now();
             {
                 let mut base_target = self.base_target();
                 let result = base_target.info_receiver.try_recv();
@@ -57,7 +61,14 @@ pub trait Target {
                 }
                 _ => {}
             }
-            thread::sleep(time::Duration::from_millis(1000/60));
+            let elapsed = SystemTime::now().duration_since(begin).expect("System time error occured.");
+            let desired_duration = Duration::from_millis(MILLISECONDS_PER_FRAME);
+            if elapsed < desired_duration {
+                let sleep_time = desired_duration - elapsed;
+                thread::sleep(sleep_time);
+            } else {
+                println!("Warning, rendering took too long: {:.3}ms", elapsed.subsec_nanos() / 1_000_000);
+            }
         }
         Ok(())
     }
