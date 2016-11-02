@@ -64,20 +64,22 @@ fn create_transition(origin: Vec<Point>, target: Vec<Point>) -> Vec<(Point, Poin
     let mut result: Vec<(Point, Point)> = Vec::new();
     for target_point in &target {
         let mut min_distance: f32 = 100.0f32;
-        let mut minimum = Point::new(target_point.x(), -1);
+        let mut minimum: Option<Point> = None;
         let mut min_index = 0;
-        for (index, origin_point) in (&origin).iter().enumerate() {
+        for (index, origin_point) in (&leftover_origins).iter().enumerate() {
             let distance = calc_distance(&origin_point, &target_point);
-            if distance < min_distance {
-                minimum = origin_point.clone();
+            if minimum.is_none() || distance < min_distance {
+                minimum = Some(origin_point.clone());
                 min_index = index;
                 min_distance = distance;
             }
         }
-        leftover_origins.retain(|point| point.x() == minimum.x() && point.y() == minimum.y());
-        result.push((minimum, target_point.clone()));
+        if minimum.is_some() {
+            leftover_origins.retain(|point| point.x() == minimum.unwrap().x() && point.y() == minimum.unwrap().y());
+        }
+        result.push((minimum.unwrap_or(target_point.clone()), target_point.clone()));
     }
-    for origin_point in leftover_origins {
+    /*for origin_point in leftover_origins {
         let mut min_distance: f32 = 100.0f32;
         let mut minimum = Point::new(origin_point.x(), -1);
         let mut min_index = 0;
@@ -90,7 +92,7 @@ fn create_transition(origin: Vec<Point>, target: Vec<Point>) -> Vec<(Point, Poin
             }
         }
         result.push((origin_point.clone(), minimum));
-    }
+    }*/
     result
 }
 
@@ -159,23 +161,28 @@ impl Graphics {
         if self.transition.is_none() {
             self.scenes.pop().unwrap();
             self.scenes.pop().unwrap();
-            let mut scene1 = self.scenes.pop().unwrap();
             let mut scene2 = self.scenes.pop().unwrap();
+            let mut scene1 = self.scenes.pop().unwrap();
             try!(renderer.render_target().unwrap().set(scene1.texture));
             renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
             renderer.clear();
             renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
             try!(scene1.scene.draw(renderer, &info, &spectrum));
             let pixels1 = derasterize_pixels(&renderer).unwrap();
-            try!(renderer.render_target().unwrap().set(scene2.texture));
+            let origin_texture = renderer.render_target().unwrap().set(scene2.texture).unwrap().unwrap();
             renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
             renderer.clear();
             renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
             try!(scene2.scene.draw(renderer, &info, &spectrum));
             let pixels2 = derasterize_pixels(&renderer).unwrap();
             self.transition = Some(create_transition(pixels1, pixels2));
+            renderer.render_target().unwrap().reset();
+            renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
+            renderer.clear();
+            renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
+            renderer.copy(&origin_texture, None, None);
+
         } else {
-            self.perform_transition();
             let origins = self.transition.clone()
                 .unwrap()
                 .iter()
@@ -186,6 +193,7 @@ impl Graphics {
             renderer.clear();
             renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
             renderer.draw_points(&origins);
+            self.perform_transition();
         }
         Ok(())
     }
