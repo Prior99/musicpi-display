@@ -1,3 +1,4 @@
+#![feature(iter_min_by)]
 extern crate spidev;
 extern crate sdl2;
 extern crate sdl2_image;
@@ -8,6 +9,7 @@ extern crate clap;
 extern crate pulse_simple;
 extern crate dft;
 extern crate bus;
+extern crate nalgebra;
 
 mod graphics;
 mod info;

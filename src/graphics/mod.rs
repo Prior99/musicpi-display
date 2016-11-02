@@ -8,6 +8,7 @@ use chrono::{DateTime, Local, Duration};
 use mpd::status::State;
 use spectrum::SpectrumResult;
 use self::scene::*;
+use nalgebra::Vector2;
 
 const SCENE_TIME: u64 = 10_000;
 
@@ -39,67 +40,53 @@ impl SceneContainer {
     }
 }
 
-fn derasterize_pixels(renderer: &Renderer) -> Result<Vec<Point>, String> {
+fn derasterize_pixels(renderer: &Renderer) -> Result<Vec<Vector2<f32>>, String> {
     let pixels = try!(renderer.read_pixels(None, PixelFormatEnum::RGBA8888));
-    let mut result: Vec<Point> = Vec::new();
+    let mut result: Vec<Vector2<f32>> = Vec::new();
     for x in 0 .. 32 {
         for y in 0 .. 16 {
             let index = (x + y * 32) * 4;
             if pixels[index] == 255 {
-                result.push(Point::new(x as i32, y as i32));
+                result.push(Vector2::new(x as f32, (15 - y) as f32));
             }
         }
     }
     Ok(result)
 }
 
-fn calc_distance(a: &Point, b: &Point) -> f32 {
-    let x = a.x() - b.x();
-    let y = a.y() - b.y();
-    ((x * x + y * y) as f32).sqrt()
+trait ToSdlPoint {
+    fn to_sdl(&self) -> Point;
 }
 
-fn create_transition(origin: Vec<Point>, target: Vec<Point>) -> Vec<(Point, Point)> {
-    let mut leftover_origins = origin.clone();
-    let mut result: Vec<(Point, Point)> = Vec::new();
-    for target_point in &target {
-        let mut min_distance: f32 = 100.0f32;
-        let mut minimum: Option<Point> = None;
-        let mut min_index = 0;
-        for (index, origin_point) in (&leftover_origins).iter().enumerate() {
-            let distance = calc_distance(&origin_point, &target_point);
-            if minimum.is_none() || distance < min_distance {
-                minimum = Some(origin_point.clone());
-                min_index = index;
-                min_distance = distance;
-            }
-        }
-        if minimum.is_some() {
-            leftover_origins.retain(|point| point.x() == minimum.unwrap().x() && point.y() == minimum.unwrap().y());
-        }
-        result.push((minimum.unwrap_or(target_point.clone()), target_point.clone()));
+impl ToSdlPoint for Vector2<f32> {
+    fn to_sdl(&self) -> Point {
+        return Point::new(self.x as i32, self.y as i32);
     }
-    /*for origin_point in leftover_origins {
-        let mut min_distance: f32 = 100.0f32;
-        let mut minimum = Point::new(origin_point.x(), -1);
-        let mut min_index = 0;
-        for (index, target_point) in (&target).iter().enumerate() {
-            let distance = calc_distance(&origin_point, &target_point);
-            if distance < min_distance {
-                minimum = target_point.clone();
-                min_index = index;
-                min_distance = distance;
-            }
+}
+
+fn create_transition(origin: Vec<Vector2<f32>>, target: Vec<Vector2<f32>>) -> Vec<(Vector2<f32>, Vector2<f32>)> {
+    let mut leftover_origins = origin.clone();
+    let mut result: Vec<(Vector2<f32>, Vector2<f32>)> = Vec::new();
+    for target_point in &target {
+        let point = target_point.clone();
+        let min = (&origin).iter().min_by(|a, b| (*a - target_point).len().cmp(&(*b - target_point).len()));
+        printl
+        if min.is_some() {
+            leftover_origins.retain(|point| point == min.unwrap());
         }
-        result.push((origin_point.clone(), minimum));
-    }*/
+        result.push((min.unwrap_or(target_point).clone(), target_point.clone()));
+    }
+    for origin_point in leftover_origins {
+        let min = (&target).iter().min_by(|a, b| (*a - origin_point).len().cmp(&(*b - origin_point).len()));
+        result.push((origin_point.clone(), min.unwrap().clone()));
+    }
     result
 }
 
 pub struct Graphics {
     time: u64,
     scenes: Vec<SceneContainer>,
-    transition: Option<Vec<(Point, Point)>>
+    transition: Option<Vec<(Vector2<f32>, Vector2<f32>)>>
 }
 
 fn prepare_texture(renderer: &mut Renderer) -> Texture {
@@ -129,14 +116,14 @@ impl Graphics {
         }
     }
 
-    fn approach(a: i32, b: i32) -> i32 {
+    fn approach(a: f32, b: f32) -> f32 {
         if a == b {
             a
         } else {
             if a > b {
-                a - 1
+                a - 1.0f32
             } else {
-                a + 1
+                a + 1.0f32
             }
         }
     }
@@ -148,49 +135,42 @@ impl Graphics {
         let transition = self.transition.clone().unwrap();
         self.transition = Some(transition.iter().map(|&(origin, target)| {
             if origin == target {
-                (origin.clone(), target.clone())
+                (origin, target)
             } else {
-                let x = Graphics::approach(origin.x(), target.x());
-                let y = Graphics::approach(origin.y(), target.y());
-                (Point::new(x, y), target.clone())
+                let x = Graphics::approach(origin.x, target.x);
+                let y = Graphics::approach(origin.y, target.y);
+                (Vector2::new(x, y), target)
             }
-        }).collect::<Vec<(Point, Point)>>());
+        }).collect::<Vec<(Vector2<f32>, Vector2<f32>)>>());
     }
 
     pub fn draw(&mut self, renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) -> Result<(), String> {
+        renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
+        renderer.clear();
         if self.transition.is_none() {
             self.scenes.pop().unwrap();
             self.scenes.pop().unwrap();
-            let mut scene2 = self.scenes.pop().unwrap();
             let mut scene1 = self.scenes.pop().unwrap();
+            let mut scene2 = self.scenes.pop().unwrap();
             try!(renderer.render_target().unwrap().set(scene1.texture));
-            renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
             renderer.clear();
-            renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
             try!(scene1.scene.draw(renderer, &info, &spectrum));
             let pixels1 = derasterize_pixels(&renderer).unwrap();
             let origin_texture = renderer.render_target().unwrap().set(scene2.texture).unwrap().unwrap();
-            renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
             renderer.clear();
-            renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
             try!(scene2.scene.draw(renderer, &info, &spectrum));
             let pixels2 = derasterize_pixels(&renderer).unwrap();
             self.transition = Some(create_transition(pixels1, pixels2));
             renderer.render_target().unwrap().reset();
-            renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
-            renderer.clear();
-            renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
             renderer.copy(&origin_texture, None, None);
 
         } else {
             let origins = self.transition.clone()
                 .unwrap()
                 .iter()
-                .map(|&(origin, _)| origin)
+                .map(|&(origin, _)| { println!("{:?}", origin.to_sdl()); origin.to_sdl() })
                 .collect::<Vec<Point>>();
             renderer.render_target().unwrap().reset();
-            renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
-            renderer.clear();
             renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
             renderer.draw_points(&origins);
             self.perform_transition();

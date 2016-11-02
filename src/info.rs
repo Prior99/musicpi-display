@@ -9,7 +9,7 @@ use std::thread;
 
 fn get_render_info(mpd: &mut Client, start_time: Instant) -> RenderInfo {
     let elapsed = Instant::now().duration_since(start_time);
-    let ms = (1_000_000_000 * elapsed.as_secs() + elapsed.subsec_nanos() as u64)/(1_000_000);
+    let ms = (1_000_000_000 * elapsed.as_secs() + elapsed.subsec_nanos() as u64)/(1_000_000) + 2000;
     let actual_time: DateTime<Local> = Local::now();
     let status = mpd.status().unwrap();
     let optional_song = mpd.currentsong().unwrap();

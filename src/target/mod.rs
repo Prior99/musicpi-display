@@ -65,7 +65,7 @@ pub trait Target {
             let desired_duration = Duration::from_millis(MILLISECONDS_PER_FRAME);
             if elapsed < desired_duration {
                 let sleep_time = desired_duration - elapsed;
-                thread::sleep(Duration::from_millis(1000));
+                thread::sleep(Duration::from_millis(200));
             } else {
                 println!("Warning, rendering took too long: {:.3}ms", elapsed.subsec_nanos() / 1_000_000);
             }
