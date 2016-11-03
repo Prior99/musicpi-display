@@ -13,8 +13,8 @@ use nalgebra::Norm;
 use core::cmp::Ordering;
 use std::mem::replace;
 
-const SCENE_TIME: u64 = 5_000;
-const TRANSITION_FRAME_DURATION: u64 = 10;
+const SCENE_TIME: u64 = 4_000;
+const TRANSITION_FRAMES: u64 = 4;
 
 #[derive(Clone)]
 pub struct RenderInfo {
@@ -81,7 +81,7 @@ fn create_transition(origin: Vec<Vector2<f32>>, target: Vec<Vector2<f32>>) -> Ve
 }
 
 pub struct Graphics {
-    time_in_transition: u64,
+    frames_in_transition: u64,
     time_in_scene: u64,
     time: u64,
     scenes: Vec<SceneContainer>,
@@ -110,7 +110,7 @@ impl Graphics {
                 Box::new(|info| info.state == State::Play))
         ];
         Graphics {
-            time_in_transition: 0,
+            frames_in_transition: 0,
             time_in_scene: 0,
             time: time,
             scenes: scenes,
@@ -177,7 +177,7 @@ impl Graphics {
         };
     }
 
-    fn draw_transition(&mut self, renderer: &mut Renderer, info: &RenderInfo) -> Result<(), String> {
+    fn draw_transition(&mut self, renderer: &mut Renderer) -> Result<(), String> {
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         renderer.clear();
         let origins = self.transition.clone()
@@ -188,7 +188,7 @@ impl Graphics {
         try!(renderer.render_target().unwrap().reset());
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
         try!(renderer.draw_points(&origins));
-        if info.ms % TRANSITION_FRAME_DURATION < self.time % TRANSITION_FRAME_DURATION {
+        if self.frames_in_transition % TRANSITION_FRAMES == 0 {
             self.perform_transition();
         }
         Ok(())
@@ -291,8 +291,8 @@ impl Graphics {
         let time_delta = info.ms - self.time;
         // Render transition if transition is in progress and else render scene
         let result = if self.transition.is_some() {
-            self.time_in_transition += time_delta;
-            self.draw_transition(renderer, &info)
+            self.frames_in_transition = self.frames_in_transition + 1;
+            self.draw_transition(renderer)
         } else {
             self.time_in_scene += time_delta;
             self.draw_scene(renderer, &info, &spectrum)
