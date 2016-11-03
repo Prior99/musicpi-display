@@ -13,7 +13,7 @@ use nalgebra::Norm;
 use core::cmp::Ordering;
 use std::mem::replace;
 
-const SCENE_TIME: u64 = 5_000;
+const SCENE_TIME: u64 = 15_000;
 
 #[derive(Clone)]
 pub struct RenderInfo {
