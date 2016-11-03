@@ -13,7 +13,7 @@ use nalgebra::Norm;
 use core::cmp::Ordering;
 use std::mem::replace;
 
-const SCENE_TIME: u64 = 4_000;
+const SCENE_TIME: u64 = 20_000;
 const TRANSITION_FRAMES: u64 = 4;
 
 #[derive(Clone)]
