@@ -6,6 +6,7 @@ use dft::{Operation, Plan};
 use bus::{BusReader};
 use ControlStatus;
 use std::thread;
+use core::cmp::Ordering;
 
 const SAMPLE_RATE: u32 = 48000;
 const DFT_WINDOW_SIZE: usize = 1024;
@@ -13,7 +14,7 @@ const COLUMNS: usize = 32;
 
 #[derive(Clone)]
 pub struct SpectrumResult {
-    pub spectrum: Vec<f32>,
+    pub spectrum: Vec<(f32, f32)>,
     pub amplitude: Vec<[f32; 2]>
 }
 
@@ -25,20 +26,30 @@ fn analyze(plan: &Plan<f32>, samples: &Vec<f32>) -> Vec<f32> {
     }).collect::<Vec<f32>>()
 }
 
-fn get_spectrum(mut plan: &mut Plan<f32>, data: &Vec<f32>) -> Vec<f32> {
+fn get_spectrum(mut plan: &mut Plan<f32>, data: &Vec<f32>) -> Vec<(f32, f32)> {
     let mut max: f32 = 0.0;
     let frequencies = analyze(&mut plan, data);
     let frequencies_per_column = (DFT_WINDOW_SIZE / 2) / COLUMNS;
     let result = (2 .. COLUMNS + 2).map(|column| {
         let start = column * frequencies_per_column;
         let end = (column + 1) * frequencies_per_column;
-        let sum: f32 = (start .. end).map(|index| {
-            frequencies[index]
-        }).sum();
-        max = max.max(sum);
-        sum
-    }).collect::<Vec<f32>>();
-    result.iter().map(|value| value / max).collect::<Vec<f32>>()
+        let column_min: f32 = (start .. end)
+            .map(|index| frequencies[index])
+            .min_by(|a, b| a.partial_cmp(&b).unwrap_or(Ordering::Equal))
+            .unwrap_or(0.0f32);
+        let column_max: f32 = (start .. end)
+            .map(|index| frequencies[index])
+            .max_by(|a, b| a.partial_cmp(&b).unwrap_or(Ordering::Equal))
+            .unwrap_or(max);
+        max = max.max(column_max);
+        (column_min, column_max)
+    }).collect::<Vec<(f32, f32)>>();
+    result.iter()
+        .map(|&(column_min, column_max)| {
+            //println!("{:?} - {:?}", column_min / max, column_max / max);
+            (column_min / max, column_max / max)
+        })
+        .collect::<Vec<(f32, f32)>>()
 }
 
 fn update_amplitude(amplitude: &mut Vec<[f32; 2]>, data: &Vec<f32>) {

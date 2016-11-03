@@ -12,18 +12,25 @@ impl SceneSpectrum {
     }
 }
 
+fn correct(value: f32) -> f32 {
+    let log_value = (value * 10000.0).log10() * 4.0;
+    if !log_value.is_finite() {
+        0.0f32
+    } else {
+        log_value.min(16.0)
+    }
+}
+
 impl Scene for SceneSpectrum {
+
+
     fn draw(&mut self, renderer: &mut Renderer, _: &RenderInfo, spectrum: &SpectrumResult) -> Result<(), String> {
-        let mut rects = spectrum.spectrum.iter().enumerate().map(|(x, value)| {
-            let fixed_value = if value.is_nan() {
-                0.0f32
-            } else {
-                value.min(1.0)
-            };
-            let height = fixed_value * 16.0;
-            Rect::new(x as i32, 16 - height as i32, 1, height as u32)
+        let rects = spectrum.spectrum.iter().enumerate().map(|(x, &(min, max))| {
+            let corrected_min = correct(min);
+            let corrected_max = correct(max);
+            let height = corrected_max - corrected_min;
+            Rect::new(x as i32, 16 - corrected_min as i32, 1, height as u32)
         }).collect::<Vec<Rect>>();
-        rects.push(Rect::new(0, 15, 33, 1));
         renderer.draw_rects(&rects)
     }
 }
