@@ -1,5 +1,5 @@
 use sdl2::render::Renderer;
-use sdl2::rect::Rect;
+use sdl2::rect::Point;
 use graphics::RenderInfo;
 use spectrum::SpectrumResult;
 use graphics::scene::Scene;
@@ -28,9 +28,9 @@ impl Scene for SceneSpectrum {
         let rects = spectrum.spectrum.iter().enumerate().map(|(x, &(min, max))| {
             let corrected_min = correct(min);
             let corrected_max = correct(max);
-            Rect::new(x as i32, (16.0 - (corrected_max + corrected_min) / 2.0) as i32, 1, 2)
-        }).collect::<Vec<Rect>>();
-        renderer.draw_rects(&rects)
+            Point::new(x as i32, (16.0 - (corrected_max + corrected_min) / 2.0) as i32)
+        }).collect::<Vec<Point>>();
+        renderer.draw_points(&rects)
     }
 }
 
