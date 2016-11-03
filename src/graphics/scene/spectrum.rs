@@ -22,9 +22,11 @@ fn correct(value: f32) -> f32 {
 }
 
 impl Scene for SceneSpectrum {
-
-
-    fn draw(&mut self, renderer: &mut Renderer, _: &RenderInfo, spectrum: &SpectrumResult) -> Result<(), String> {
+    fn draw(&mut self,
+            renderer: &mut Renderer,
+            _: &RenderInfo,
+            spectrum: &SpectrumResult,
+            _: u64) -> Result<(), String> {
         let rects = spectrum.spectrum.iter().enumerate().map(|(x, &(min, max))| {
             let corrected_min = correct(min);
             let corrected_max = correct(max);

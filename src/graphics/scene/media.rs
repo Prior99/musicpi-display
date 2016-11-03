@@ -32,14 +32,18 @@ impl SceneMedia {
 }
 
 impl Scene for SceneMedia {
-    fn draw(&mut self, renderer: &mut Renderer, info: &RenderInfo, _: &SpectrumResult) -> Result<(), String> {
+    fn draw(&mut self,
+            renderer: &mut Renderer,
+            info: &RenderInfo,
+            _: &SpectrumResult,
+            time: u64) -> Result<(), String> {
         let media_text = format!("{} - {}", info.artist, info.song);
-        try!(self.font_3x5.marquee(media_text.as_str(), &Point::new(0, 11), info.ms, renderer));
+        try!(self.font_3x5.marquee(media_text.as_str(), &Point::new(0, 11), time, renderer));
         let elapsed = info.elapsed.num_milliseconds() / 100;
         let duration = info.duration.num_milliseconds() / 100;
         let progress = elapsed as f32 / duration as f32;
         let pixels = (progress * SPINNER_FRAMES as f32) as i32;
-        let start = (info.ms as i32 / 100) % SPINNER_FRAMES;
+        let start = (time as i32 / 100) % SPINNER_FRAMES;
         let state_frame = match info.state {
             State::Play => 0,
             State::Pause => 1,

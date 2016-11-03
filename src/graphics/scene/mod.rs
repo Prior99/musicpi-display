@@ -13,5 +13,9 @@ use graphics::RenderInfo;
 use spectrum::SpectrumResult;
 
 pub trait Scene {
-    fn draw(&mut self, renderer: &mut Renderer, info: &RenderInfo, spectrum: &SpectrumResult) -> Result<(), String>;
+    fn draw(&mut self,
+            renderer: &mut Renderer,
+            info: &RenderInfo,
+            spectrum: &SpectrumResult,
+            time: u64) -> Result<(), String>;
 }

@@ -14,7 +14,7 @@ impl SceneAmplitude {
 }
 
 impl Scene for SceneAmplitude {
-    fn draw(&mut self, renderer: &mut Renderer, _: &RenderInfo, spectrum: &SpectrumResult) -> Result<(), String> {
+    fn draw(&mut self, renderer: &mut Renderer, _: &RenderInfo, spectrum: &SpectrumResult, _: u64) -> Result<(), String> {
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         renderer.clear();
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));

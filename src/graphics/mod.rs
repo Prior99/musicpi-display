@@ -13,8 +13,8 @@ use nalgebra::Norm;
 use core::cmp::Ordering;
 use std::mem::replace;
 
-const SCENE_TIME: u64 = 20_000;
-const TRANSITION_FRAME_DURATION: u64 = 20;
+const SCENE_TIME: u64 = 5_000;
+const TRANSITION_FRAME_DURATION: u64 = 10;
 
 #[derive(Clone)]
 pub struct RenderInfo {
@@ -81,6 +81,8 @@ fn create_transition(origin: Vec<Vector2<f32>>, target: Vec<Vector2<f32>>) -> Ve
 }
 
 pub struct Graphics {
+    time_in_transition: u64,
+    time_in_scene: u64,
     time: u64,
     scenes: Vec<SceneContainer>,
     current_scene: Option<SceneContainer>,
@@ -108,6 +110,8 @@ impl Graphics {
                 Box::new(|info| info.state == State::Play))
         ];
         Graphics {
+            time_in_transition: 0,
+            time_in_scene: 0,
             time: time,
             scenes: scenes,
             transition: None,
@@ -193,14 +197,15 @@ impl Graphics {
     fn get_pixels_of_scene(mut container: SceneContainer,
             renderer: &mut Renderer,
             info: &RenderInfo,
-            spectrum: &SpectrumResult) -> Result<(SceneContainer, Vec<Vector2<f32>>), String> {
+            spectrum: &SpectrumResult,
+            time: u64) -> Result<(SceneContainer, Vec<Vector2<f32>>), String> {
         try!(renderer.render_target().unwrap().set(container.texture));
         // Clear the texture
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         renderer.clear();
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
         // Draw current scene once, to get an up-to-date version of the pixels 
-        try!(container.scene.draw(renderer, info, spectrum));
+        try!(container.scene.draw(renderer, info, spectrum, time));
         let pixels = try!(Graphics::derasterize_pixels(renderer));
         let new_texture = renderer.render_target().unwrap().reset().unwrap().unwrap();
         Ok((SceneContainer::new(container.scene, new_texture, container.condition), pixels))
@@ -214,8 +219,11 @@ impl Graphics {
         // Return old scene into front of queue and grep derasterized pixels of it
         let old_pixels = if self.current_scene.is_some() {
             let scene = replace(&mut self.current_scene, None);
-            let (swapped_scene, pixels) = Graphics::get_pixels_of_scene(scene.unwrap(), renderer, info, spectrum)
-                .expect("Unabled to read pixels from scene.");
+            let (swapped_scene, pixels) = Graphics::get_pixels_of_scene(scene.unwrap(),
+                renderer,
+                info,
+                spectrum,
+                self.time_in_scene).expect("Unabled to read pixels from scene.");
             self.scenes.insert(0, swapped_scene);
             pixels
         } else {
@@ -229,8 +237,12 @@ impl Graphics {
             container = self.scenes.pop().unwrap();
         }
         // Grab derasterized pixels of new scene
-        let (swapped_container, new_pixels) = Graphics::get_pixels_of_scene(container, renderer, info, spectrum)
-            .expect("Error when reading pixels from scene.");
+        let (swapped_container, new_pixels) = Graphics::get_pixels_of_scene(
+            container,
+            renderer,
+            info,
+            spectrum,
+            self.time_in_scene).expect("Error when reading pixels from scene.");
         // Store that one as current scene
         self.transition = Some(create_transition(old_pixels, new_pixels));
         self.current_scene = Some(swapped_container);
@@ -262,7 +274,7 @@ impl Graphics {
         renderer.clear();
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
         // Draw current scene 
-        try!(container.scene.draw(renderer, info, spectrum));
+        try!(container.scene.draw(renderer, info, spectrum, self.time_in_scene));
         // Reset texture back to wondow texture
         let updated_scene_texture = renderer.render_target().unwrap().reset().unwrap().unwrap();
         // Render the scene texture onto the window texture
@@ -276,10 +288,13 @@ impl Graphics {
         if info.ms % SCENE_TIME < self.time % SCENE_TIME {
             try!(self.next_scene(renderer, &info, &spectrum));
         }
+        let time_delta = info.ms - self.time;
         // Render transition if transition is in progress and else render scene
         let result = if self.transition.is_some() {
+            self.time_in_transition += time_delta;
             self.draw_transition(renderer, &info)
         } else {
+            self.time_in_scene += time_delta;
             self.draw_scene(renderer, &info, &spectrum)
         };
         self.time = info.ms;

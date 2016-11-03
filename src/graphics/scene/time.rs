@@ -22,7 +22,7 @@ impl SceneTime {
 }
 
 impl Scene for SceneTime {
-    fn draw(&mut self, renderer: &mut Renderer, info: &RenderInfo, _: &SpectrumResult) -> Result<(), String> {
+    fn draw(&mut self, renderer: &mut Renderer, info: &RenderInfo, _: &SpectrumResult, _: u64) -> Result<(), String> {
         let hours = info.time.format("%H").to_string();
         let minutes = info.time.format("%M").to_string();
         let second = info.time.second() as f32;
