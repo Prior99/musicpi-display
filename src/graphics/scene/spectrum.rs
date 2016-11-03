@@ -28,8 +28,7 @@ impl Scene for SceneSpectrum {
         let rects = spectrum.spectrum.iter().enumerate().map(|(x, &(min, max))| {
             let corrected_min = correct(min);
             let corrected_max = correct(max);
-            let height = corrected_max - corrected_min;
-            Rect::new(x as i32, 16 - corrected_min as i32, 1, height as u32)
+            Rect::new(x as i32, (16.0 - (corrected_max + corrected_min) / 2.0 - 1.0) as i32, 1, 3)
         }).collect::<Vec<Rect>>();
         renderer.draw_rects(&rects)
     }
