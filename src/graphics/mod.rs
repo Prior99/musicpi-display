@@ -13,7 +13,8 @@ use nalgebra::Norm;
 use core::cmp::Ordering;
 use std::mem::replace;
 
-const SCENE_TIME: u64 = 15_000;
+const SCENE_TIME: u64 = 1_000;
+const TRANSITION_FRAME_DURATION: u64 = 50;
 
 #[derive(Clone)]
 pub struct RenderInfo {
@@ -150,10 +151,17 @@ impl Graphics {
             if origin == target {
                 (origin, target)
             } else {
-                let x = Graphics::approach(origin.x, target.x);
-                let y = Graphics::approach(origin.y, target.y);
+                let mut x = Graphics::approach(origin.x, target.x);
+                let mut y = Graphics::approach(origin.y, target.y);
                 if x != origin.x || y != origin.y {
                     changed = true;
+                }
+                if x != origin.x && y != origin.y {
+                    if self.time % 2 == 1 {
+                        x = origin.x;
+                    } else {
+                        y = origin.y;
+                    }
                 }
                 (Vector2::new(x, y), target)
             }
@@ -165,7 +173,7 @@ impl Graphics {
         };
     }
 
-    fn draw_transition(&mut self, renderer: &mut Renderer) -> Result<(), String> {
+    fn draw_transition(&mut self, renderer: &mut Renderer, info: &RenderInfo) -> Result<(), String> {
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         renderer.clear();
         let origins = self.transition.clone()
@@ -176,7 +184,7 @@ impl Graphics {
         try!(renderer.render_target().unwrap().reset());
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
         try!(renderer.draw_points(&origins));
-        if self.time % 2 == 0 {
+        if info.ms % TRANSITION_FRAME_DURATION < self.time % TRANSITION_FRAME_DURATION {
             self.perform_transition();
         }
         Ok(())
@@ -244,8 +252,8 @@ impl Graphics {
         self.current_scene = Some(container);
     }
 
-    fn draw_scene(&mut self, renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) -> Result<(), String> {
-        let mut container = self.take_current_scene(renderer, &info, &spectrum).unwrap();
+    fn draw_scene(&mut self, renderer: &mut Renderer, info: &RenderInfo, spectrum: &SpectrumResult) -> Result<(), String> {
+        let mut container = self.take_current_scene(renderer, info, spectrum).unwrap();
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         // Clear window texture
         renderer.clear();
@@ -254,7 +262,7 @@ impl Graphics {
         renderer.clear();
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
         // Draw current scene 
-        try!(container.scene.draw(renderer, &info, &spectrum));
+        try!(container.scene.draw(renderer, info, spectrum));
         // Reset texture back to wondow texture
         let updated_scene_texture = renderer.render_target().unwrap().reset().unwrap().unwrap();
         // Render the scene texture onto the window texture
@@ -268,12 +276,13 @@ impl Graphics {
         if info.ms % SCENE_TIME < self.time % SCENE_TIME {
             try!(self.next_scene(renderer, &info, &spectrum));
         }
-        self.time = info.ms;
         // Render transition if transition is in progress and else render scene
-        if self.transition.is_some() {
-            self.draw_transition(renderer)
+        let result = if self.transition.is_some() {
+            self.draw_transition(renderer, &info)
         } else {
-            self.draw_scene(renderer, info, spectrum)
-        }
+            self.draw_scene(renderer, &info, &spectrum)
+        };
+        self.time = info.ms;
+        result
     }
 }
