@@ -10,6 +10,7 @@ extern crate pulse_simple;
 extern crate dft;
 extern crate bus;
 extern crate nalgebra;
+extern crate core;
 
 mod graphics;
 mod info;

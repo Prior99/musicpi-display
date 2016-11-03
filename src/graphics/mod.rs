@@ -9,8 +9,11 @@ use mpd::status::State;
 use spectrum::SpectrumResult;
 use self::scene::*;
 use nalgebra::Vector2;
+use nalgebra::Norm;
+use core::cmp::Ordering;
+use std::mem::replace;
 
-const SCENE_TIME: u64 = 10_000;
+const SCENE_TIME: u64 = 5_000;
 
 #[derive(Clone)]
 pub struct RenderInfo {
@@ -47,7 +50,7 @@ fn derasterize_pixels(renderer: &Renderer) -> Result<Vec<Vector2<f32>>, String> 
         for y in 0 .. 16 {
             let index = (x + y * 32) * 4;
             if pixels[index] == 255 {
-                result.push(Vector2::new(x as f32, (15 - y) as f32));
+                result.push(Vector2::new(x as f32, y as f32));
             }
         }
     }
@@ -69,16 +72,23 @@ fn create_transition(origin: Vec<Vector2<f32>>, target: Vec<Vector2<f32>>) -> Ve
     let mut result: Vec<(Vector2<f32>, Vector2<f32>)> = Vec::new();
     for target_point in &target {
         let point = target_point.clone();
-        let min = (&origin).iter().min_by(|a, b| (*a - target_point).len().cmp(&(*b - target_point).len()));
-        printl
+        let min = (&origin).iter().min_by(|a, b| {
+            let dist_a = (*a - target_point).norm();
+            let dist_b = (*b - target_point).norm();
+            dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Equal)
+        });
         if min.is_some() {
-            leftover_origins.retain(|point| point == min.unwrap());
+            leftover_origins.retain(|point| point != min.unwrap());
         }
         result.push((min.unwrap_or(target_point).clone(), target_point.clone()));
     }
     for origin_point in leftover_origins {
-        let min = (&target).iter().min_by(|a, b| (*a - origin_point).len().cmp(&(*b - origin_point).len()));
-        result.push((origin_point.clone(), min.unwrap().clone()));
+        let min = (&target).iter().min_by(|a, b| {
+            let dist_a = (*a - origin_point).norm();
+            let dist_b = (*b - origin_point).norm();
+            dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Equal)
+        });
+        result.push((origin_point.clone(), min.unwrap_or(&Vector2::new(-1.0f32, -1.0f32)).clone()));
     }
     result
 }
@@ -86,6 +96,7 @@ fn create_transition(origin: Vec<Vector2<f32>>, target: Vec<Vector2<f32>>) -> Ve
 pub struct Graphics {
     time: u64,
     scenes: Vec<SceneContainer>,
+    current_scene: Option<SceneContainer>,
     transition: Option<Vec<(Vector2<f32>, Vector2<f32>)>>
 }
 
@@ -112,7 +123,8 @@ impl Graphics {
         Graphics {
             time: time,
             scenes: scenes,
-            transition: None
+            transition: None,
+            current_scene: None
         }
     }
 
@@ -144,14 +156,14 @@ impl Graphics {
         }).collect::<Vec<(Vector2<f32>, Vector2<f32>)>>());
     }
 
-    pub fn draw(&mut self, renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) -> Result<(), String> {
+    /*fn draw_transition(&mut self, renderer: &mut Renderer) -> Result<(), String> {
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         renderer.clear();
         if self.transition.is_none() {
             self.scenes.pop().unwrap();
             self.scenes.pop().unwrap();
-            let mut scene1 = self.scenes.pop().unwrap();
             let mut scene2 = self.scenes.pop().unwrap();
+            let mut scene1 = self.scenes.pop().unwrap();
             try!(renderer.render_target().unwrap().set(scene1.texture));
             renderer.clear();
             try!(scene1.scene.draw(renderer, &info, &spectrum));
@@ -163,12 +175,11 @@ impl Graphics {
             self.transition = Some(create_transition(pixels1, pixels2));
             renderer.render_target().unwrap().reset();
             renderer.copy(&origin_texture, None, None);
-
         } else {
             let origins = self.transition.clone()
                 .unwrap()
                 .iter()
-                .map(|&(origin, _)| { println!("{:?}", origin.to_sdl()); origin.to_sdl() })
+                .map(|&(origin, _)| origin.to_sdl())
                 .collect::<Vec<Point>>();
             renderer.render_target().unwrap().reset();
             renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
@@ -176,5 +187,67 @@ impl Graphics {
             self.perform_transition();
         }
         Ok(())
+    }*/
+
+    fn next_scene(&mut self, info: &RenderInfo) {
+        // Return old scene into front of queue
+        if self.current_scene.is_some() {
+            let scene = replace(&mut self.current_scene, None);
+            self.scenes.insert(0, scene.unwrap());
+        }
+        // Take buffers from top and return them to front if condition not matching
+        // until a scene with a matching condition was found
+        let mut container = self.scenes.pop().unwrap();
+        while !(container.condition)(&info) {
+            self.scenes.insert(0, container);
+            container = self.scenes.pop().unwrap();
+        }
+        // Store that one as current scene
+        self.current_scene = Some(container);
+    }
+
+    fn take_current_scene(&mut self, info: &RenderInfo) -> Option<SceneContainer> {
+        if self.current_scene.is_none() {
+            self.next_scene(info);
+        }
+        replace(&mut self.current_scene, None)
+    }
+
+    fn give_current_scene_back(&mut self, container: SceneContainer) {
+        self.current_scene = Some(container);
+    }
+
+    fn draw_scene(&mut self, renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) -> Result<(), String> {
+        let mut container = self.take_current_scene(&info).unwrap();
+        renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
+        // Clear window texture
+        renderer.clear();
+        try!(renderer.render_target().unwrap().set(container.texture));
+        // Clear scene texture
+        renderer.clear();
+        renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
+        // Draw current scene 
+        try!(container.scene.draw(renderer, &info, &spectrum));
+        // Reset texture back to wondow texture
+        let updated_scene_texture = renderer.render_target().unwrap().reset().unwrap().unwrap();
+        // Render the scene texture onto the window texture
+        try!(renderer.copy(&updated_scene_texture, Some(Rect::new(0, 0, 32, 16)), Some(Rect::new(0, 0, 32, 16))));
+        self.give_current_scene_back(SceneContainer::new(container.scene, updated_scene_texture, container.condition));
+        Ok(())
+    }
+
+    pub fn draw(&mut self, renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) -> Result<(), String> {
+        // Switch scene after timeout
+        if info.ms % SCENE_TIME < self.time % SCENE_TIME {
+            self.next_scene(&info);
+        }
+        self.time = info.ms;
+        // Render transition if transition is in progress and else render scene
+        if self.transition.is_some() {
+            //self.draw_transition(renderer)
+            self.draw_scene(renderer, info, spectrum)
+        } else {
+            self.draw_scene(renderer, info, spectrum)
+        }
     }
 }
