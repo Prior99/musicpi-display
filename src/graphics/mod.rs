@@ -182,23 +182,31 @@ impl Graphics {
         Ok(())
     }
 
-    /*fn start_transition(&mut self, renderer: &mut Renderer) -> Result<(), String> {
-    
-    }*/
-
-    fn get_pixels_of_scene(container: SceneContainer, renderer: &mut Renderer) ->
-            Result<(SceneContainer, Vec<Vector2<f32>>), String> {
+    fn get_pixels_of_scene(mut container: SceneContainer,
+            renderer: &mut Renderer,
+            info: &RenderInfo,
+            spectrum: &SpectrumResult) -> Result<(SceneContainer, Vec<Vector2<f32>>), String> {
         try!(renderer.render_target().unwrap().set(container.texture));
+        // Clear the texture
+        renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
+        renderer.clear();
+        renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
+        // Draw current scene once, to get an up-to-date version of the pixels 
+        try!(container.scene.draw(renderer, info, spectrum));
         let pixels = try!(Graphics::derasterize_pixels(renderer));
         let new_texture = renderer.render_target().unwrap().reset().unwrap().unwrap();
         Ok((SceneContainer::new(container.scene, new_texture, container.condition), pixels))
     }
 
-    fn next_scene(&mut self, renderer: &mut Renderer, info: &RenderInfo) -> Result<(), String> {
+    fn next_scene(
+            &mut self,
+            renderer: &mut Renderer,
+            info: &RenderInfo,
+            spectrum: &SpectrumResult) -> Result<(), String> {
         // Return old scene into front of queue and grep derasterized pixels of it
         let old_pixels = if self.current_scene.is_some() {
             let scene = replace(&mut self.current_scene, None);
-            let (swapped_scene, pixels) = Graphics::get_pixels_of_scene(scene.unwrap(), renderer)
+            let (swapped_scene, pixels) = Graphics::get_pixels_of_scene(scene.unwrap(), renderer, info, spectrum)
                 .expect("Unabled to read pixels from scene.");
             self.scenes.insert(0, swapped_scene);
             pixels
@@ -213,7 +221,7 @@ impl Graphics {
             container = self.scenes.pop().unwrap();
         }
         // Grab derasterized pixels of new scene
-        let (swapped_container, new_pixels) = Graphics::get_pixels_of_scene(container, renderer)
+        let (swapped_container, new_pixels) = Graphics::get_pixels_of_scene(container, renderer, info, spectrum)
             .expect("Error when reading pixels from scene.");
         // Store that one as current scene
         self.transition = Some(create_transition(old_pixels, new_pixels));
@@ -221,9 +229,13 @@ impl Graphics {
         Ok(())
     }
 
-    fn take_current_scene(&mut self, renderer: &mut Renderer, info: &RenderInfo) -> Option<SceneContainer> {
+    fn take_current_scene(
+            &mut self,
+            renderer: &mut Renderer,
+            info: &RenderInfo,
+            spectrum: &SpectrumResult) -> Option<SceneContainer> {
         if self.current_scene.is_none() {
-            self.next_scene(renderer, info).expect("Could not switch to next scene.");
+            self.next_scene(renderer, info, spectrum).expect("Could not switch to next scene.");
         }
         replace(&mut self.current_scene, None)
     }
@@ -233,7 +245,7 @@ impl Graphics {
     }
 
     fn draw_scene(&mut self, renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) -> Result<(), String> {
-        let mut container = self.take_current_scene(renderer, &info).unwrap();
+        let mut container = self.take_current_scene(renderer, &info, &spectrum).unwrap();
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         // Clear window texture
         renderer.clear();
@@ -254,7 +266,7 @@ impl Graphics {
     pub fn draw(&mut self, renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) -> Result<(), String> {
         // Switch scene after timeout
         if info.ms % SCENE_TIME < self.time % SCENE_TIME {
-            try!(self.next_scene(renderer, &info));
+            try!(self.next_scene(renderer, &info, &spectrum));
         }
         self.time = info.ms;
         // Render transition if transition is in progress and else render scene
