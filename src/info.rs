@@ -1,13 +1,25 @@
-use graphics::RenderInfo;
 use chrono::{DateTime, Local, Duration};
 use std::time::{Instant};
 use mpd::Client;
+use mpd::status::State;
 use std::sync::mpsc::{SyncSender, SendError};
 use bus::{BusReader};
 use ControlStatus;
 use std::thread;
 
-fn get_render_info(mpd: &mut Client, start_time: Instant) -> RenderInfo {
+#[derive(Clone)]
+pub struct Info {
+    pub volume: i8,
+    pub ms: u64,
+    pub time: DateTime<Local>,
+    pub artist: String,
+    pub song: String,
+    pub duration: Duration,
+    pub elapsed: Duration,
+    pub state: State
+}
+
+fn get_render_info(mpd: &mut Client, start_time: Instant) -> Info {
     let elapsed = Instant::now().duration_since(start_time);
     let ms = (1_000_000_000 * elapsed.as_secs() + elapsed.subsec_nanos() as u64)/(1_000_000) + 2000;
     let actual_time: DateTime<Local> = Local::now();
@@ -20,7 +32,7 @@ fn get_render_info(mpd: &mut Client, start_time: Instant) -> RenderInfo {
         (String::from(""), String::from(""))
     };
     let (elapsed, duration) = status.time.unwrap_or((Duration::seconds(0), Duration::seconds(0)));
-    RenderInfo {
+    Info {
         volume: status.volume,
         ms: ms,
         time: actual_time,
@@ -32,7 +44,7 @@ fn get_render_info(mpd: &mut Client, start_time: Instant) -> RenderInfo {
     }
 }
 
-pub fn run(mut control_rx: BusReader<ControlStatus>, sender: SyncSender<RenderInfo>) -> Result<(), SendError<RenderInfo>> {
+pub fn run(mut control_rx: BusReader<ControlStatus>, sender: SyncSender<Info>) -> Result<(), SendError<Info>> {
     let mut mpd = Client::connect("127.0.0.1:6600").unwrap();
     let start_time = Instant::now();
     loop {

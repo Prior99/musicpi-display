@@ -1,7 +1,7 @@
 use sdl2::rect::Point;
 use sdl2::render::Renderer;
 use sdl2::pixels::Color;
-use graphics::RenderInfo;
+use info::Info;
 use spectrum::SpectrumResult;
 use graphics::scene::Scene;
 
@@ -14,7 +14,7 @@ impl SceneAmplitude {
 }
 
 impl Scene for SceneAmplitude {
-    fn draw(&mut self, renderer: &mut Renderer, _: &RenderInfo, spectrum: &SpectrumResult, _: u64) -> Result<(), String> {
+    fn draw(&mut self, renderer: &mut Renderer, _: &Info, spectrum: &SpectrumResult, _: u64) -> Result<(), String> {
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         renderer.clear();
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));

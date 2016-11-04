@@ -3,7 +3,7 @@ use mpd::status::State;
 use sdl2::render::{Renderer, Texture};
 use sdl2_image::LoadTexture;
 use sdl2::rect::{Point, Rect};
-use graphics::RenderInfo;
+use info::Info;
 use spectrum::SpectrumResult;
 use graphics::scene::Scene;
 use graphics::font::FontRenderer;
@@ -34,7 +34,7 @@ impl SceneMedia {
 impl Scene for SceneMedia {
     fn draw(&mut self,
             renderer: &mut Renderer,
-            info: &RenderInfo,
+            info: &Info,
             _: &SpectrumResult,
             time: u64) -> Result<(), String> {
         let media_text = format!("{} - {}", info.artist, info.song);

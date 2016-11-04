@@ -1,7 +1,8 @@
 pub mod display;
 pub mod window;
 
-use graphics::{Graphics, RenderInfo};
+use graphics::Graphics;
+use info::Info;
 use spectrum::SpectrumResult;
 use sdl2::render::Renderer;
 use std::sync::mpsc::Receiver;
@@ -15,9 +16,9 @@ const MILLISECONDS_PER_FRAME: u64 = 1000/60;
 
 pub struct BaseTarget {
     renderer: Renderer<'static>,
-    info: RenderInfo,
+    info: Info,
     spectrum: SpectrumResult,
-    info_receiver: Receiver<RenderInfo>,
+    info_receiver: Receiver<Info>,
     spectrum_receiver: Receiver<SpectrumResult>
 }
 

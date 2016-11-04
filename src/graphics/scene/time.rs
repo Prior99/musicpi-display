@@ -2,7 +2,7 @@ use std::path::Path;
 use sdl2::render::Renderer;
 use sdl2_image::LoadTexture;
 use sdl2::rect::Point;
-use graphics::RenderInfo;
+use info::Info;
 use spectrum::SpectrumResult;
 use graphics::scene::Scene;
 use graphics::font::FontRenderer;
@@ -22,7 +22,7 @@ impl SceneTime {
 }
 
 impl Scene for SceneTime {
-    fn draw(&mut self, renderer: &mut Renderer, info: &RenderInfo, _: &SpectrumResult, _: u64) -> Result<(), String> {
+    fn draw(&mut self, renderer: &mut Renderer, info: &Info, _: &SpectrumResult, _: u64) -> Result<(), String> {
         let hours = info.time.format("%H").to_string();
         let minutes = info.time.format("%M").to_string();
         let second = info.time.second() as f32;

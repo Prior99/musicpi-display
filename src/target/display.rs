@@ -2,7 +2,7 @@ use sdl2::surface::Surface;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::Renderer;
 use display::Display;
-use graphics::RenderInfo;
+use info::Info;
 use spectrum::SpectrumResult;
 use std::sync::mpsc::Receiver;
 use std::slice::from_raw_parts;
@@ -22,7 +22,7 @@ pub struct TargetDisplay {
 }
 
 impl TargetDisplay {
-    pub fn new(info_receiver: Receiver<RenderInfo>,
+    pub fn new(info_receiver: Receiver<Info>,
             spectrum_receiver: Receiver<SpectrumResult>) -> Result<TargetDisplay, String> {
         let surface = Surface::new(32, 16, PixelFormatEnum::RGBA8888).unwrap();
         let renderer = Renderer::from_surface(surface).unwrap();

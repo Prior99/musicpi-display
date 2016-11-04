@@ -1,7 +1,7 @@
 use sdl2;
 use sdl2::event::Event;
 use sdl2::EventPump;
-use graphics::RenderInfo;
+use info::Info;
 use spectrum::SpectrumResult;
 use std::sync::mpsc::Receiver;
 use target::{BaseTarget, Target};
@@ -12,7 +12,7 @@ pub struct TargetWindow {
 }
 
 impl TargetWindow {
-    pub fn new(info_receiver: Receiver<RenderInfo>,
+    pub fn new(info_receiver: Receiver<Info>,
             spectrum_receiver: Receiver<SpectrumResult>) -> Result<TargetWindow, String> {
         let sdl_context = sdl2::init().unwrap();
         let video = sdl_context.video().unwrap();

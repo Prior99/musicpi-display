@@ -4,7 +4,6 @@ pub mod scene;
 use sdl2::render::{Renderer, Texture};
 use sdl2::rect::{Rect, Point};
 use sdl2::pixels::{Color, PixelFormatEnum};
-use chrono::{DateTime, Local, Duration};
 use mpd::status::State;
 use spectrum::SpectrumResult;
 use self::scene::*;
@@ -12,30 +11,20 @@ use nalgebra::Vector2;
 use nalgebra::Norm;
 use core::cmp::Ordering;
 use std::mem::replace;
+use info::Info;
 
 const SCENE_TIME: u64 = 20_000;
 const TRANSITION_FRAMES: u64 = 4;
 
-#[derive(Clone)]
-pub struct RenderInfo {
-    pub volume: i8,
-    pub ms: u64,
-    pub time: DateTime<Local>,
-    pub artist: String,
-    pub song: String,
-    pub duration: Duration,
-    pub elapsed: Duration,
-    pub state: State
-}
 
 pub struct SceneContainer {
     scene: Box<Scene>,
     texture: Texture,
-    condition: Box<Fn(&RenderInfo) -> bool>
+    condition: Box<Fn(&Info) -> bool>
 }
 
 impl SceneContainer {
-    fn new(scene: Box<Scene>, texture: Texture, condition: Box<Fn(&RenderInfo) -> bool>) -> SceneContainer {
+    fn new(scene: Box<Scene>, texture: Texture, condition: Box<Fn(&Info) -> bool>) -> SceneContainer {
         SceneContainer {
             texture: texture,
             scene: scene,
@@ -196,7 +185,7 @@ impl Graphics {
 
     fn get_pixels_of_scene(mut container: SceneContainer,
             renderer: &mut Renderer,
-            info: &RenderInfo,
+            info: &Info,
             spectrum: &SpectrumResult,
             time: u64) -> Result<(SceneContainer, Vec<Vector2<f32>>), String> {
         try!(renderer.render_target().unwrap().set(container.texture));
@@ -214,7 +203,7 @@ impl Graphics {
     fn next_scene(
             &mut self,
             renderer: &mut Renderer,
-            info: &RenderInfo,
+            info: &Info,
             spectrum: &SpectrumResult) -> Result<(), String> {
         // Return old scene into front of queue and grep derasterized pixels of it
         let old_pixels = if self.current_scene.is_some() {
@@ -252,7 +241,7 @@ impl Graphics {
     fn take_current_scene(
             &mut self,
             renderer: &mut Renderer,
-            info: &RenderInfo,
+            info: &Info,
             spectrum: &SpectrumResult) -> Option<SceneContainer> {
         if self.current_scene.is_none() {
             self.next_scene(renderer, info, spectrum).expect("Could not switch to next scene.");
@@ -264,7 +253,7 @@ impl Graphics {
         self.current_scene = Some(container);
     }
 
-    fn draw_scene(&mut self, renderer: &mut Renderer, info: &RenderInfo, spectrum: &SpectrumResult) -> Result<(), String> {
+    fn draw_scene(&mut self, renderer: &mut Renderer, info: &Info, spectrum: &SpectrumResult) -> Result<(), String> {
         let mut container = self.take_current_scene(renderer, info, spectrum).unwrap();
         renderer.set_draw_color(Color::RGBA(255, 255, 255, 0));
         // Clear window texture
@@ -283,7 +272,7 @@ impl Graphics {
         Ok(())
     }
 
-    pub fn draw(&mut self, renderer: &mut Renderer, info: RenderInfo, spectrum: SpectrumResult) -> Result<(), String> {
+    pub fn draw(&mut self, renderer: &mut Renderer, info: Info, spectrum: SpectrumResult) -> Result<(), String> {
         // Switch scene after timeout
         if info.ms % SCENE_TIME < self.time % SCENE_TIME {
             try!(self.next_scene(renderer, &info, &spectrum));

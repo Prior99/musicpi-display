@@ -27,7 +27,7 @@ use std::thread::{spawn, JoinHandle};
 use std::sync::mpsc::{sync_channel, channel, Receiver, SyncSender, Sender};
 use clap::{App};
 use spectrum::SpectrumResult;
-use graphics::RenderInfo;
+use info::Info;
 
 #[derive(Clone, PartialEq)]
 pub enum ControlStatus {
@@ -37,7 +37,7 @@ pub enum ControlStatus {
 fn thread_render(
         control_tx: SyncSender<ControlStatus>,
         control_rx: BusReader<ControlStatus>,
-        info_rx: Receiver<RenderInfo>,
+        info_rx: Receiver<Info>,
         spectrum_rx: Receiver<SpectrumResult>,
         use_display: bool) -> JoinHandle<()> {
     spawn(move || {
@@ -66,7 +66,7 @@ fn thread_spectrum(
 fn thread_info(
         control_tx: SyncSender<ControlStatus>,
         control_rx: BusReader<ControlStatus>,
-        info_tx: SyncSender<RenderInfo>) -> JoinHandle<()> {
+        info_tx: SyncSender<Info>) -> JoinHandle<()> {
     spawn(move || {
         if !info::run(control_rx, info_tx).is_ok() {
             control_tx.send(ControlStatus::Abort).ok();

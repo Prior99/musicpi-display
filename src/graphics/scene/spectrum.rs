@@ -1,6 +1,6 @@
 use sdl2::render::Renderer;
 use sdl2::rect::Point;
-use graphics::RenderInfo;
+use info::Info;
 use spectrum::SpectrumResult;
 use graphics::scene::Scene;
 
@@ -24,7 +24,7 @@ fn correct(value: f32) -> f32 {
 impl Scene for SceneSpectrum {
     fn draw(&mut self,
             renderer: &mut Renderer,
-            _: &RenderInfo,
+            _: &Info,
             spectrum: &SpectrumResult,
             _: u64) -> Result<(), String> {
         let rects = spectrum.spectrum.iter().enumerate().map(|(x, &(min, max))| {
