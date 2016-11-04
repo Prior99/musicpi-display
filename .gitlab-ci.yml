@@ -1,0 +1,59 @@
+image: scorpil/rust:nightly
+
+stages:
+  - test
+  - build
+
+before_script:
+  - apt-get update
+  - apt-get upgrade --yes
+  - apt-get --yes --fix-missing install libcurl4-openssl-dev libelf-dev libdw-dev cmake build-essential pkg-config cmake-data zlib1g zlib1g-dev python libsdl2-dev libsdl2-image-dev libpulse-dev
+
+'Tests':
+  stage: test
+  script:
+    #- curl -L https://github.com/SimonKagstrom/kcov/archive/master.tar.gz | tar xz
+    #- cd kcov-master
+    #- mkdir build
+    #- cd build
+    #- cmake ..
+    #- make
+    #- make install
+    #- cd ../..
+    - cargo test
+    #- cargo build
+    #- kcov --exclude-pattern=/.cargo,/usr/lib --verify target/coverage target/debug/musicpi_display
+  #cache:
+    #paths:
+      #- kcov-master
+  #artifacts:
+    #name: "musicpi-display-${CI_BUILD_REF_NAME}-coverage"
+    #paths:
+      #- target/coverage/*
+
+'Build Debug':
+  stage: build
+  script:
+    - cargo build
+  artifacts:
+    name: "musicpi-display-${CI_BUILD_REF_NAME}-debug"
+    paths:
+      - target/debug/*
+
+'Build Release':
+  stage: build
+  script:
+    - cargo build --release
+  artifacts:
+    name: "musicpi-display-${CI_BUILD_REF_NAME}-release"
+    paths:
+      - target/release/*
+
+'Build Documentation':
+  stage: build
+  script:
+    - cargo doc
+  artifacts:
+    name: "musicpi-display-${CI_BUILD_REF_NAME}-doc"
+    paths:
+      - target/doc/*
