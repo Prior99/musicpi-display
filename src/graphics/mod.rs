@@ -1,5 +1,8 @@
 pub mod font;
 pub mod scene;
+#[cfg(test)]
+mod tests;
+
 
 use sdl2::render::{Renderer, Texture};
 use sdl2::rect::{Rect, Point};
@@ -44,31 +47,6 @@ impl ToSdlPoint for Vector2<f32> {
     }
 }
 
-fn create_transition(origin: Vec<Vector2<f32>>, target: Vec<Vector2<f32>>) -> Vec<(Vector2<f32>, Vector2<f32>)> {
-    let mut leftover_origins = origin.clone();
-    let mut result: Vec<(Vector2<f32>, Vector2<f32>)> = Vec::new();
-    for target_point in &target {
-        let min = (&origin).iter().min_by(|a, b| {
-            let dist_a = (*a - target_point).norm();
-            let dist_b = (*b - target_point).norm();
-            dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Equal)
-        });
-        if min.is_some() {
-            leftover_origins.retain(|point| point != min.unwrap());
-        }
-        result.push((min.unwrap_or(target_point).clone(), target_point.clone()));
-    }
-    for origin_point in leftover_origins {
-        let min = (&target).iter().min_by(|a, b| {
-            let dist_a = (*a - origin_point).norm();
-            let dist_b = (*b - origin_point).norm();
-            dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Equal)
-        });
-        result.push((origin_point.clone(), min.unwrap_or(&Vector2::new(-1.0f32, -1.0f32)).clone()));
-    }
-    result
-}
-
 pub struct Graphics {
     frames_in_transition: u64,
     time_in_scene: u64,
@@ -108,6 +86,32 @@ impl Graphics {
         }
     }
 
+    fn create_transition(origin: Vec<Vector2<f32>>, target: Vec<Vector2<f32>>) -> Vec<(Vector2<f32>, Vector2<f32>)> {
+        let mut leftover_origins = origin.clone();
+        let mut result: Vec<(Vector2<f32>, Vector2<f32>)> = Vec::new();
+        for target_point in &target {
+            let min = (&origin).iter().min_by(|a, b| {
+                let dist_a = (*a - target_point).norm();
+                let dist_b = (*b - target_point).norm();
+                dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Equal)
+            });
+            if min.is_some() {
+                leftover_origins.retain(|point| point != min.unwrap());
+            }
+            result.push((min.unwrap_or(target_point).clone(), target_point.clone()));
+        }
+        for origin_point in leftover_origins {
+            let min = (&target).iter().min_by(|a, b| {
+                let dist_a = (*a - origin_point).norm();
+                let dist_b = (*b - origin_point).norm();
+                dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Equal)
+            });
+            result.push((origin_point.clone(), min.unwrap_or(&Vector2::new(-1.0f32, -1.0f32)).clone()));
+        }
+        result
+    }
+
+
     fn derasterize_pixels(renderer: &Renderer) -> Result<Vec<Vector2<f32>>, String> {
         let pixels = try!(renderer.read_pixels(None, PixelFormatEnum::RGBA8888));
         let mut result: Vec<Vector2<f32>> = Vec::new();
@@ -127,9 +131,9 @@ impl Graphics {
             a
         } else {
             if a > b {
-                a - 1.0f32
+                a - 1.0
             } else {
-                a + 1.0f32
+                a + 1.0
             }
         }
     }
@@ -233,7 +237,7 @@ impl Graphics {
             spectrum,
             self.time_in_scene).expect("Error when reading pixels from scene.");
         // Store that one as current scene
-        self.transition = Some(create_transition(old_pixels, new_pixels));
+        self.transition = Some(Graphics::create_transition(old_pixels, new_pixels));
         self.current_scene = Some(swapped_container);
         Ok(())
     }
