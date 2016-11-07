@@ -1,8 +1,5 @@
 pub mod font;
 pub mod scene;
-#[cfg(test)]
-mod tests;
-
 
 use sdl2::render::{Renderer, Texture};
 use sdl2::rect::{Rect, Point};
@@ -292,5 +289,69 @@ impl Graphics {
         };
         self.time = info.ms;
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sdl2::rect::Rect;
+    use nalgebra::Vector2;
+    use test_helpers::*;
+    use super::*;
+
+    #[test]
+    fn derasterize_pixels() {
+        let mut renderer = create_test_renderer();
+        renderer.draw_rect(Rect::new(4, 4, 2, 2)).unwrap();
+        let pixels = Graphics::derasterize_pixels(&mut renderer).unwrap();
+        assert_eq!(vec![
+                   Vector2::new(4.0, 4.0),
+                   Vector2::new(4.0, 5.0),
+                   Vector2::new(5.0, 4.0),
+                   Vector2::new(5.0, 5.0)
+        ], pixels);
+    }
+
+    #[test]
+    fn create_transition_equal_size() {
+        let origin = vec![Vector2::new(1.0, 4.0), Vector2::new(2.0, 4.0), Vector2::new(3.0, 4.0)];
+        let target = vec![Vector2::new(1.0, 10.0), Vector2::new(2.0, 10.0), Vector2::new(3.0, 10.0)];
+        let result = Graphics::create_transition(origin, target);
+        assert_eq!(vec![
+                   (Vector2::new(1.0, 4.0), Vector2::new(1.0, 10.0)),
+                   (Vector2::new(2.0, 4.0), Vector2::new(2.0, 10.0)),
+                   (Vector2::new(3.0, 4.0), Vector2::new(3.0, 10.0))
+        ], result)
+    }
+
+    #[test]
+    fn create_transition_smaller_size() {
+        let origin = vec![Vector2::new(1.0, 4.0), Vector2::new(2.0, 4.0)];
+        let target = vec![Vector2::new(1.0, 10.0), Vector2::new(2.0, 10.0), Vector2::new(3.0, 10.0)];
+        let result = Graphics::create_transition(origin, target);
+        assert_eq!(vec![
+                   (Vector2::new(1.0, 4.0), Vector2::new(1.0, 10.0)),
+                   (Vector2::new(2.0, 4.0), Vector2::new(2.0, 10.0)),
+                   (Vector2::new(2.0, 4.0), Vector2::new(3.0, 10.0))
+        ], result)
+    }
+
+    #[test]
+    fn create_transition_bigger_size() {
+        let origin = vec![Vector2::new(1.0, 4.0), Vector2::new(2.0, 4.0), Vector2::new(3.0, 4.0)];
+        let target = vec![Vector2::new(1.0, 10.0), Vector2::new(2.0, 10.0)];
+        let result = Graphics::create_transition(origin, target);
+        assert_eq!(vec![
+           (Vector2::new(1.0, 4.0), Vector2::new(1.0, 10.0)),
+           (Vector2::new(2.0, 4.0), Vector2::new(2.0, 10.0)),
+           (Vector2::new(3.0, 4.0), Vector2::new(2.0, 10.0))
+        ], result)
+    }
+
+    #[test]
+    fn approach() {
+        assert_eq!(6.0, Graphics::approach(5.0, 9.0));
+        assert_eq!(6.0, Graphics::approach(7.0, 3.0));
+        assert_eq!(6.0, Graphics::approach(6.0, 6.0));
     }
 }

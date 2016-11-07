@@ -19,6 +19,9 @@ mod spectrum;
 mod display;
 mod target;
 
+#[cfg(test)]
+mod test_helpers;
+
 use bus::{Bus, BusReader};
 use target::Target;
 use target::display::TargetDisplay;
