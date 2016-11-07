@@ -4,6 +4,11 @@ stages:
   - test
   - build
 
+before_script:
+  - apt-get update
+  - apt-get upgrade --yes
+  - apt-get --yes --fix-missing install libcurl4-openssl-dev libelf-dev libdw-dev cmake build-essential pkg-config cmake-data zlib1g zlib1g-dev python libsdl2-dev libsdl2-image-dev libpulse-dev
+
 'Tests':
   stage: test
   script:
