@@ -12,6 +12,7 @@ use nalgebra::Norm;
 use core::cmp::Ordering;
 use std::mem::replace;
 use info::Info;
+use std;
 
 const SCENE_TIME: u64 = 20_000;
 const TRANSITION_FRAMES: u64 = 4;
@@ -40,7 +41,7 @@ trait ToSdlPoint {
 
 impl ToSdlPoint for Vector2<f32> {
     fn to_sdl(&self) -> Point {
-        return Point::new(self.x as i32, self.y as i32);
+        Point::new(self.x as i32, self.y as i32)
     }
 }
 
@@ -95,7 +96,7 @@ impl Graphics {
             if min.is_some() {
                 leftover_origins.retain(|point| point != min.unwrap());
             }
-            result.push((min.unwrap_or(target_point).clone(), target_point.clone()));
+            result.push((*min.unwrap_or(target_point), *target_point));
         }
         for origin_point in leftover_origins {
             let min = (&target).iter().min_by(|a, b| {
@@ -103,7 +104,7 @@ impl Graphics {
                 let dist_b = (*b - origin_point).norm();
                 dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Equal)
             });
-            result.push((origin_point.clone(), min.unwrap_or(&Vector2::new(-1.0f32, -1.0f32)).clone()));
+            result.push((origin_point, *min.unwrap_or(&Vector2::new(-1.0f32, -1.0f32))));
         }
         result
     }
@@ -124,14 +125,12 @@ impl Graphics {
     }
 
     fn approach(a: f32, b: f32) -> f32 {
-        if a == b {
+        if (a - b).abs() < std::f32::EPSILON {
             a
+        } else if a > b {
+            a - 1.0
         } else {
-            if a > b {
-                a - 1.0
-            } else {
-                a + 1.0
-            }
+            a + 1.0
         }
     }
 
@@ -147,10 +146,10 @@ impl Graphics {
             } else {
                 let mut x = Graphics::approach(origin.x, target.x);
                 let mut y = Graphics::approach(origin.y, target.y);
-                if x != origin.x || y != origin.y {
+                if (x - origin.x).abs() > std::f32::EPSILON || (y - origin.y).abs() > std::f32::EPSILON {
                     changed = true;
                 }
-                if x != origin.x && y != origin.y {
+                if (x - origin.x).abs() > std::f32::EPSILON && (y - origin.y).abs() > std::f32::EPSILON {
                     if self.time % 2 == 1 {
                         x = origin.x;
                     } else {
@@ -222,7 +221,7 @@ impl Graphics {
         // Take buffers from top and return them to front if condition not matching
         // until a scene with a matching condition was found
         let mut container = self.scenes.pop().unwrap();
-        while !(container.condition)(&info) {
+        while !(container.condition)(info) {
             self.scenes.insert(0, container);
             container = self.scenes.pop().unwrap();
         }
@@ -281,7 +280,7 @@ impl Graphics {
         let time_delta = info.ms - self.time;
         // Render transition if transition is in progress and else render scene
         let result = if self.transition.is_some() {
-            self.frames_in_transition = self.frames_in_transition + 1;
+            self.frames_in_transition += self.frames_in_transition;
             self.draw_transition(renderer)
         } else {
             self.time_in_scene += time_delta;
@@ -298,12 +297,13 @@ mod tests {
     use nalgebra::Vector2;
     use test_helpers::*;
     use super::*;
+    use std;
 
     #[test]
     fn derasterize_pixels() {
         let mut renderer = create_test_renderer();
         renderer.draw_rect(Rect::new(4, 4, 2, 2)).unwrap();
-        let pixels = Graphics::derasterize_pixels(&mut renderer).unwrap();
+        let pixels = Graphics::derasterize_pixels(&renderer).unwrap();
         assert_eq!(vec![
                    Vector2::new(4.0, 4.0),
                    Vector2::new(4.0, 5.0),
@@ -350,8 +350,8 @@ mod tests {
 
     #[test]
     fn approach() {
-        assert_eq!(6.0, Graphics::approach(5.0, 9.0));
-        assert_eq!(6.0, Graphics::approach(7.0, 3.0));
-        assert_eq!(6.0, Graphics::approach(6.0, 6.0));
+        assert!(Graphics::approach(5.0, 9.0) - 6.0 < std::f32::EPSILON);
+        assert!(Graphics::approach(7.0, 3.0) - 6.0 < std::f32::EPSILON);
+        assert!(Graphics::approach(6.0, 6.0) - 6.0 < std::f32::EPSILON);
     }
 }

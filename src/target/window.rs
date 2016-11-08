@@ -47,10 +47,7 @@ impl Target for TargetWindow {
 
     fn render(&mut self) -> bool {
         for event in self.events.poll_iter() {
-            match event {
-                Event::Quit {..} => return false,
-                _ => {}
-            }
+            if let Event::Quit {..} = event { return false }
         }
         self.base_target.renderer.present();
         true

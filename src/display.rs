@@ -21,7 +21,7 @@ pub struct Display {
 impl Display {
     /// Returns the amount of devices connected to this display.
     fn get_devices(&self) -> usize {
-        return self.devices_horizontal * self.devices_vertical;
+        self.devices_horizontal * self.devices_vertical
     }
 
     /// Create a new display width specified dimensions of matrices.

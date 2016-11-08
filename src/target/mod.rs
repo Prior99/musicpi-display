@@ -54,13 +54,10 @@ pub trait Target {
             if !self.render() {
                 break 'a;
             }
-            match control_rx.try_recv() {
-                Ok(status) => {
-                    if status == ControlStatus::Abort {
-                        break 'a;
-                    }
+            if let Ok(status) = control_rx.try_recv() {
+                if status == ControlStatus::Abort {
+                    break 'a;
                 }
-                _ => {}
             }
             let elapsed = SystemTime::now().duration_since(begin).expect("System time error occured.");
             let desired_duration = Duration::from_millis(MILLISECONDS_PER_FRAME);

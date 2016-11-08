@@ -27,7 +27,7 @@ fn get_render_info(mpd: &mut Client, start_time: Instant) -> Info {
     let optional_song = mpd.currentsong().unwrap();
     let (title, artist) = if optional_song.is_some() {
         let song = optional_song.unwrap();
-        (song.title.unwrap_or(String::from("")), song.tags.get("Artist").unwrap_or(&String::from("")).clone())
+        (song.title.unwrap_or_else(|| String::from("")), song.tags.get("Artist").unwrap_or(&String::from("")).clone())
     } else {
         (String::from(""), String::from(""))
     };
@@ -52,13 +52,10 @@ pub fn run(mut control_rx: BusReader<ControlStatus>, sender: SyncSender<Info>) -
         if !result.is_ok() {
             return result;
         }
-        match control_rx.try_recv() {
-            Ok(status) => {
-                if status == ControlStatus::Abort {
-                    return Ok(())
-                }
+        if let Ok(status) = control_rx.try_recv() {
+            if status == ControlStatus::Abort {
+                return Ok(())
             }
-            _ => {}
         }
         thread::yield_now();
     }
