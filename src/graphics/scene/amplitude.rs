@@ -1,4 +1,4 @@
-use sdl2::rect::Point;
+use sdl2::rect::Rect;
 use sdl2::render::Renderer;
 use sdl2::pixels::Color;
 use info::Info;
@@ -19,12 +19,9 @@ impl Scene for SceneAmplitude {
         renderer.clear();
         renderer.set_draw_color(Color::RGBA(0, 0, 0, 255));
         let points = spectrum.amplitude.iter().enumerate().flat_map(|(x, value)| {
-            let height_min = value[0] * -7.0;
-            let height_max = value[1] * 8.0;
-            vec![Point::new(x as i32, height_min as i32 + 8), Point::new(x as i32, 8 - height_max as i32)]
-        }).collect::<Vec<Point>>();
-        renderer.draw_points(&points)
+            let height = value[1] * 15.0;
+            vec![Rect::new(x as i32, 16i32 - height.max(0.0f32) as i32, 1, height as u32)]
+        }).collect::<Vec<Rect>>();
+        renderer.draw_rects(&points)
     }
 }
-
-
