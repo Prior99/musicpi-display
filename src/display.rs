@@ -79,7 +79,7 @@ impl Display {
         let write_data = (0 .. self.get_devices())
             .flat_map(|_| vec![register, data])
             .collect::<Vec<_>>();
-        try!(self.spi.write(write_data.as_slice()));
+        try!(self.spi.write_all(write_data.as_slice()));
         Ok(())
     }
 
@@ -98,7 +98,7 @@ impl Display {
                 vec![Register::Noop as u8, 0]
             }
         }).collect::<Vec<_>>();
-        try!(self.spi.write(write_data.as_slice()));
+        try!(self.spi.write_all(write_data.as_slice()));
         Ok(())
     }
 
