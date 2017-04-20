@@ -1,8 +1,6 @@
 #![deny(warnings)]
 #![feature(plugin)]
 #![plugin(clippy)]
-#![feature(iter_min_by)]
-#![feature(iter_max_by)]
 extern crate spidev;
 extern crate sdl2;
 extern crate sdl2_image;
